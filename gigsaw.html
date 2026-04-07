@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="The System Is The Resume" />
+  <title>Gigsaw — Cut through.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── Design Tokens ────────────────────────────────────────────────── */
+    :root {
+      --surface: #fbf9f8;
+      --surface-dim: #dbdad9;
+      --surface-container-lowest: #ffffff;
+      --surface-container-low: #f5f3f3;
+      --surface-container: #efeeed;
+      --surface-container-high: #e9e8e7;
+      --surface-container-highest: #e3e2e1;
+      --primary: #000000;
+      --primary-container: #1b1b1b;
+      --on-primary: #ffffff;
+      --on-surface: #1b1c1c;
+      --secondary: #5e5e5e;
+      --outline-variant: #cfc4c5;
+      --error: #ba1a1a;
+      --success: #1a6b3c;
+
+      --font-display: 'Newsreader', Georgia, serif;
+      --font-body: 'Inter', system-ui, sans-serif;
+
+      --shadow-float: 0 20px 40px rgba(27, 28, 28, 0.04);
+      --ghost-border: 1px solid rgba(207, 196, 197, 0.15);
+      --radius: 0.375rem;
+      --radius-sm: 0.125rem;
+    }
+
+    /* ─── Reset & Base ─────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { font-size: 16px; scroll-behavior: smooth; }
+
+    body {
+      background: var(--surface);
+      color: var(--on-surface);
+      font-family: var(--font-body);
+      font-size: 0.9375rem;
+      line-height: 1.6;
+      font-weight: 400;
+      -webkit-font-smoothing: antialiased;
+      animation: fadeIn 0.4s ease both;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ─── Typography Utilities ─────────────────────────────────────────── */
+    .display {
+      font-family: var(--font-display);
+      font-size: 3.5rem;
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+    }
+
+    .headline-lg {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+
+    .headline-md {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 400;
+      line-height: 1.3;
+    }
+
+    .title-sm {
+      font-family: var(--font-body);
+      font-size: 0.875rem;
+      font-weight: 500;
+      line-height: 1.4;
+    }
+
+    .body-md {
+      font-family: var(--font-body);
+      font-size: 0.9375rem;
+      line-height: 1.6;
+    }
+
+    .label-sm {
+      font-family: var(--font-body);
+      font-size: 0.6875rem;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .label-md {
+      font-family: var(--font-body);
+      font-size: 0.8125rem;
+      line-height: 1.4;
+    }
+
+    .secondary { color: var(--secondary); }
+    .mono { font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace; }
+
+    /* ─── Layout ───────────────────────────────────────────────────────── */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 48px;
+    }
+
+    .editorial-row {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 0 48px;
+      align-items: start;
+    }
+
+    .margin-label {
+      padding-top: 4px;
+      color: var(--secondary);
+    }
+
+    /* ─── Buttons ──────────────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-body);
+      font-size: 0.8125rem;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      border: none;
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+      padding: 10px 20px;
+      text-decoration: none;
+      transition: opacity 0.15s ease, background 0.15s ease;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: var(--on-primary);
+    }
+    .btn-primary:hover { opacity: 0.85; }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--on-surface);
+      outline: var(--ghost-border);
+    }
+    .btn-secondary:hover { background: var(--surface-container-high); }
+
+    /* ─── Top Command Bar ──────────────────────────────────────────────── */
+    .command-bar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--surface-container-lowest);
+      box-shadow: var(--shadow-float);
+    }
+
+    .command-bar-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 48px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .command-bar-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .gigsaw-wordmark {
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    .command-bar-tagline {
+      font-style: italic;
+      color: var(--secondary);
+    }
+
+    .command-bar-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .command-bar-date { color: var(--secondary); }
+    .command-bar-motto { color: var(--secondary); }
+
+    /* ─── Hero Section ─────────────────────────────────────────────────── */
+    .hero {
+      padding: 80px 0 60px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-watermark {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: var(--font-display);
+      font-size: 18rem;
+      font-weight: 600;
+      color: var(--on-surface);
+      opacity: 0.03;
+      white-space: nowrap;
+      pointer-events: none;
+      user-select: none;
+      z-index: 0;
+      letter-spacing: -0.03em;
+    }
+
+    .hero-content { position: relative; z-index: 1; }
+
+    .hero-meta {
+      margin-bottom: 8px;
+    }
+
+    .hero-sub {
+      margin-top: 10px;
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-top: 40px;
+    }
+
+    .stat-card {
+      background: var(--surface-container-low);
+      padding: 20px 18px 18px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-float);
+    }
+
+    .stat-label {
+      color: var(--secondary);
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .stat-value {
+      font-family: var(--font-display);
+      font-size: 2.25rem;
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1;
+      color: var(--on-surface);
+    }
+
+    .stat-card.has-value .stat-value { color: var(--primary); }
+    .stat-card.stat-offers .stat-value { color: var(--success); }
+    .stat-card.stat-rejected .stat-value { color: var(--secondary); }
+
+    /* ─── Section Wrapper ──────────────────────────────────────────────── */
+    .section {
+      padding: 80px 0;
+    }
+
+    .section + .section {
+      background: var(--surface-container-low);
+    }
+
+    .section-headline { margin-bottom: 6px; }
+
+    .section-description {
+      color: var(--secondary);
+      margin-bottom: 36px;
+    }
+
+    /* ─── Empty State ──────────────────────────────────────────────────── */
+    .empty-state {
+      background: var(--surface-container-low);
+      border-radius: var(--radius);
+      padding: 64px 40px;
+      text-align: center;
+      box-shadow: var(--shadow-float);
+    }
+
+    .empty-state-title {
+      color: var(--secondary);
+      margin-bottom: 8px;
+    }
+
+    .empty-state-hint {
+      color: var(--secondary);
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.75rem;
+      margin-bottom: 28px;
+      opacity: 0.75;
+    }
+
+    /* ─── Feed Items ───────────────────────────────────────────────────── */
+    .feed-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .feed-item {
+      background: var(--surface-container-high);
+      border-radius: var(--radius);
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .feed-item-inner {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 24px;
+      align-items: start;
+      padding: 20px 24px;
+      background: var(--surface-container-lowest);
+      margin: 2px;
+      border-radius: calc(var(--radius) - 2px);
+    }
+
+    .feed-item-company { color: var(--secondary); margin-bottom: 3px; }
+    .feed-item-role {
+      font-family: var(--font-display);
+      font-style: italic;
+      font-size: 1.0625rem;
+      color: var(--on-surface);
+      margin-bottom: 10px;
+    }
+
+    .feed-item-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+
+    .tag {
+      background: var(--surface-container);
+      padding: 2px 8px;
+      border-radius: 2px;
+      color: var(--secondary);
+    }
+
+    .feed-item-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+    }
+
+    .grade-badge {
+      width: 32px;
+      height: 32px;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-body);
+      font-size: 0.875rem;
+      font-weight: 700;
+    }
+
+    .grade-A { background: rgba(26, 107, 60, 0.12); color: var(--success); }
+    .grade-B { background: rgba(0,0,0,0.06); color: var(--on-surface); }
+    .grade-C { background: rgba(0,0,0,0.06); color: var(--secondary); }
+    .grade-D { background: rgba(186, 26, 26, 0.08); color: var(--error); }
+    .grade-F { background: rgba(186, 26, 26, 0.14); color: var(--error); }
+
+    .feed-item-date { color: var(--secondary); }
+
+    /* ─── Build Cards ──────────────────────────────────────────────────── */
+    .builds-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 8px;
+    }
+
+    .build-card {
+      background: var(--surface-container-low);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow-float);
+    }
+
+    .build-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-bottom: 12px;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--secondary);
+    }
+
+    .status-dot.active { background: var(--success); }
+
+    /* ─── Commands Section ─────────────────────────────────────────────── */
+    .commands-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .command-card {
+      background: var(--surface-container-low);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      cursor: default;
+      transition: background 0.15s ease;
+      box-shadow: var(--shadow-float);
+    }
+
+    .command-card:hover {
+      background: var(--surface-container-high);
+    }
+
+    .command-card.accent {
+      background: var(--surface-container);
+    }
+
+    .command-card.accent:hover {
+      background: var(--surface-container-high);
+    }
+
+    .command-name {
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--primary);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .command-card.accent .command-name {
+      color: var(--primary-container);
+    }
+
+    .star-mark {
+      font-size: 0.625rem;
+      opacity: 0.6;
+    }
+
+    .command-desc {
+      color: var(--secondary);
+    }
+
+    /* ─── Footer ───────────────────────────────────────────────────────── */
+    .footer {
+      background: var(--surface-container-low);
+      padding-top: 60px;
+      padding-bottom: 32px;
+    }
+
+    .footer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* ─── Responsive ───────────────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .command-bar-inner { padding: 12px 24px; }
+      .container { padding: 0 24px; }
+
+      .editorial-row {
+        grid-template-columns: 1fr;
+        gap: 8px 0;
+      }
+
+      .margin-label { padding-top: 0; }
+
+      .stats-row {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .commands-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .hero-watermark { font-size: 9rem; }
+
+      .footer-inner { padding: 0 24px; flex-direction: column; gap: 12px; }
+    }
+
+    @media (max-width: 600px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .commands-grid { grid-template-columns: 1fr; }
+      .command-bar-right { display: none; }
+      .display { font-size: 2.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Top Command Bar ────────────────────────────────────────────── -->
+  <header class="command-bar" role="banner">
+    <div class="command-bar-inner">
+      <div class="command-bar-left">
+        <span class="label-sm gigsaw-wordmark">Gigsaw</span>
+        <span class="body-md command-bar-tagline">Cut through.</span>
+      </div>
+      <div class="command-bar-right">
+        <span class="label-sm command-bar-date" id="current-date"></span>
+        <span class="label-sm command-bar-motto">The System Is The Resume</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Hero ───────────────────────────────────────────────────────── -->
+  <div class="hero">
+    <div class="hero-watermark" aria-hidden="true">GIGSAW</div>
+    <div class="container hero-content">
+      <div class="editorial-row">
+        <div class="margin-label">
+          <span class="label-sm">Status</span>
+        </div>
+        <div>
+          <div class="hero-meta">
+            <span class="label-sm secondary" id="pipeline-status">Pipeline initialized. No applications tracked yet.</span>
+          </div>
+          <h1 class="headline-lg">Pipeline.</h1>
+          <div class="stats-row" role="list" aria-label="Pipeline statistics">
+            <div class="stat-card" role="listitem" id="stat-evaluating">
+              <span class="label-sm stat-label">Evaluating</span>
+              <span class="stat-value">0</span>
+            </div>
+            <div class="stat-card" role="listitem" id="stat-applied">
+              <span class="label-sm stat-label">Applied</span>
+              <span class="stat-value">0</span>
+            </div>
+            <div class="stat-card" role="listitem" id="stat-interviewing">
+              <span class="label-sm stat-label">Interviewing</span>
+              <span class="stat-value">0</span>
+            </div>
+            <div class="stat-card stat-offers" role="listitem" id="stat-offers">
+              <span class="label-sm stat-label">Offers</span>
+              <span class="stat-value">0</span>
+            </div>
+            <div class="stat-card stat-rejected" role="listitem" id="stat-rejected">
+              <span class="label-sm stat-label">Rejected</span>
+              <span class="stat-value">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Intelligence Feed ──────────────────────────────────────────── -->
+  <section class="section" aria-labelledby="feed-headline">
+    <div class="container">
+      <div class="editorial-row">
+        <div class="margin-label">
+          <span class="label-sm">Feed</span>
+        </div>
+        <div>
+          <h2 class="headline-md section-headline" id="feed-headline">Intelligence Feed</h2>
+          <p class="body-md secondary section-description">Job evaluations, arbitrage reports, and company recon.</p>
+
+          <div id="feed-container">
+            <div class="empty-state">
+              <p class="body-md empty-state-title">The feed is empty.</p>
+              <p class="label-md empty-state-hint">Run /gigsaw search or /gigsaw recon [company] to populate.</p>
+              <button class="btn btn-primary" onclick="handleGigsawSearch()">Run /gigsaw search</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Active Builds ──────────────────────────────────────────────── -->
+  <section class="section" aria-labelledby="builds-headline">
+    <div class="container">
+      <div class="editorial-row">
+        <div class="margin-label">
+          <span class="label-sm">Builds</span>
+        </div>
+        <div>
+          <h2 class="headline-md section-headline" id="builds-headline">Proof Builds</h2>
+          <p class="body-md secondary section-description">Structured work samples and proposals tied to open opportunities.</p>
+
+          <div id="builds-container">
+            <div class="empty-state">
+              <p class="body-md empty-state-title">No builds in progress.</p>
+              <p class="label-md empty-state-hint">Run /gigsaw build [company] to propose a proof build.</p>
+              <button class="btn btn-secondary" onclick="handleGigsawBuild()">Run /gigsaw build</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Commands ───────────────────────────────────────────────────── -->
+  <section class="section" aria-labelledby="commands-headline">
+    <div class="container">
+      <div class="editorial-row">
+        <div class="margin-label">
+          <span class="label-sm">Commands</span>
+        </div>
+        <div>
+          <h2 class="headline-md section-headline" id="commands-headline">Commands</h2>
+          <p class="body-md secondary section-description">The full Gigsaw playbook, from first scan to signed offer.</p>
+
+          <div class="commands-grid" role="list" aria-label="Available Gigsaw commands">
+            <div class="command-card" role="listitem" tabindex="0">
+              <div class="command-name">/gigsaw setup</div>
+              <div class="label-sm command-desc">Build your profile</div>
+            </div>
+            <div class="command-card" role="listitem" tabindex="0">
+              <div class="command-name">/gigsaw search</div>
+              <div class="label-sm command-desc">Scrape job boards</div>
+            </div>
+            <div class="command-card" role="listitem" tabindex="0">
+              <div class="command-name">/gigsaw evaluate</div>
+              <div class="label-sm command-desc">Score a listing A–F</div>
+            </div>
+            <div class="command-card accent" role="listitem" tabindex="0">
+              <div class="command-name">/gigsaw arbitrage <span class="star-mark" aria-label="advanced">★</span></div>
+              <div class="label-sm command-desc">What this role is becoming</div>
+            </div>
+            <div class="command-card accent" role="listitem" tabindex="0">
+              <div class="command-name">/gigsaw propose <span class="star-mark" aria-label="advanced">★</span></div>
+              <div class="label-sm command-desc">Write the JD they haven't posted</div>
+            </div>
+            <div class="command-card" role="listitem" tabindex="0">
+              <div class="command-name">/gigsaw recon</div>
+              <div class="label-sm command-desc">Deep company research</div>
+            </div>
+            <div class="command-card accent" role="listitem" tabindex="0">
+              <div class="command-name">/gigsaw build <span class="star-mark" aria-label="advanced">★</span></div>
+              <div class="label-sm command-desc">Propose a proof build</div>
+            </div>
+            <div class="command-card" role="listitem" tabindex="0">
+              <div class="command-name">/gigsaw remix</div>
+              <div class="label-sm command-desc">Generate application package</div>
+            </div>
+            <div class="command-card" role="listitem" tabindex="0">
+              <div class="command-name">/gigsaw wild</div>
+              <div class="label-sm command-desc">Unorthodox plays</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Footer ─────────────────────────────────────────────────────── -->
+  <footer class="footer" role="contentinfo">
+    <div class="footer-inner">
+      <span class="label-sm secondary">GIGSAW — Cut through.</span>
+      <span class="label-sm secondary">The System Is The Resume</span>
+    </div>
+  </footer>
+
+  <script>
+    /* ── Utility: set current date ─────────────────────────────────── */
+    (function setDate() {
+      const el = document.getElementById('current-date');
+      if (!el) return;
+      const now = new Date();
+      const opts = { year: 'numeric', month: 'long', day: 'numeric' };
+      el.textContent = now.toLocaleDateString('en-US', opts).toUpperCase();
+    })();
+
+    /* ── TSV parser ────────────────────────────────────────────────── */
+    function parseTSV(text) {
+      const lines = text.trim().split('\n');
+      if (lines.length < 2) return [];
+      const headers = lines[0].split('\t').map(h => h.trim());
+      return lines.slice(1).map(line => {
+        const values = line.split('\t');
+        return headers.reduce((obj, h, i) => {
+          obj[h] = (values[i] || '').trim();
+          return obj;
+        }, {});
+      });
+    }
+
+    /* ── Grade badge HTML ──────────────────────────────────────────── */
+    function gradeBadge(grade) {
+      const g = (grade || '').toUpperCase().charAt(0) || '?';
+      const cls = ['A','B','C','D','F'].includes(g) ? `grade-${g}` : 'grade-C';
+      return `<div class="grade-badge ${cls}" aria-label="Grade ${g}">${g}</div>`;
+    }
+
+    /* ── Render feed item ──────────────────────────────────────────── */
+    function renderFeedItem(app) {
+      const tags = [app.status, app.proof_build, app.warm_path]
+        .filter(Boolean)
+        .map(t => `<span class="tag label-sm">${t}</span>`)
+        .join('');
+
+      const date = app.date
+        ? `<span class="label-sm feed-item-date secondary">${app.date}</span>`
+        : '';
+
+      return `
+        <div class="feed-item">
+          <div class="feed-item-inner">
+            <div>
+              <div class="title-sm feed-item-company secondary">${app.company || 'Unknown company'}</div>
+              <div class="feed-item-role">${app.role || 'Role not specified'}</div>
+              ${tags ? `<div class="feed-item-tags">${tags}</div>` : ''}
+            </div>
+            <div class="feed-item-right">
+              ${gradeBadge(app.grade)}
+              ${date}
+            </div>
+          </div>
+        </div>`;
+    }
+
+    /* ── Render build card ─────────────────────────────────────────── */
+    function renderBuildCard(app) {
+      const isActive = app.status && app.status.toLowerCase().includes('interview');
+      return `
+        <div class="build-card">
+          <div class="build-status">
+            <span class="status-dot ${isActive ? 'active' : ''}"></span>
+            <span class="label-sm secondary">${app.status || 'In progress'}</span>
+          </div>
+          <div class="title-sm" style="margin-bottom:4px;">${app.company || 'Unknown'}</div>
+          <div class="body-md" style="font-family:var(--font-display);font-style:italic;margin-bottom:12px;">
+            ${app.role || 'Role not specified'}
+          </div>
+          ${app.proof_build ? `<p class="label-sm secondary">${app.proof_build}</p>` : ''}
+        </div>`;
+    }
+
+    /* ── Update stat card ──────────────────────────────────────────── */
+    function updateStat(id, count) {
+      const card = document.getElementById(id);
+      if (!card) return;
+      const valueEl = card.querySelector('.stat-value');
+      if (valueEl) {
+        valueEl.textContent = count;
+        if (count > 0) card.classList.add('has-value');
+      }
+    }
+
+    /* ── Populate dashboard from data ─────────────────────────────── */
+    function populateDashboard(applications, jobs) {
+      /* Stat counts */
+      const counts = { evaluating: 0, applied: 0, interviewing: 0, offers: 0, rejected: 0 };
+      applications.forEach(app => {
+        const s = (app.status || '').toLowerCase();
+        if (s.includes('evaluat')) counts.evaluating++;
+        else if (s.includes('applied') || s.includes('apply')) counts.applied++;
+        else if (s.includes('interview')) counts.interviewing++;
+        else if (s.includes('offer')) counts.offers++;
+        else if (s.includes('reject') || s.includes('pass')) counts.rejected++;
+      });
+
+      updateStat('stat-evaluating', counts.evaluating);
+      updateStat('stat-applied', counts.applied);
+      updateStat('stat-interviewing', counts.interviewing);
+      updateStat('stat-offers', counts.offers);
+      updateStat('stat-rejected', counts.rejected);
+
+      const total = applications.length;
+      const pipelineStatus = document.getElementById('pipeline-status');
+      if (pipelineStatus && total > 0) {
+        pipelineStatus.textContent =
+          `${total} application${total !== 1 ? 's' : ''} tracked. ` +
+          (counts.interviewing > 0 ? `${counts.interviewing} in interview.` : 'No active interviews.');
+      }
+
+      /* Feed */
+      const feedContainer = document.getElementById('feed-container');
+      const feedData = applications.filter(a => a.grade || a.company);
+      if (feedContainer && feedData.length > 0) {
+        feedContainer.innerHTML = `<div class="feed-list">${feedData.map(renderFeedItem).join('')}</div>`;
+      }
+
+      /* Builds */
+      const buildsContainer = document.getElementById('builds-container');
+      const buildData = applications.filter(a => a.proof_build && a.proof_build.trim());
+      if (buildsContainer && buildData.length > 0) {
+        buildsContainer.innerHTML = `<div class="builds-grid">${buildData.map(renderBuildCard).join('')}</div>`;
+      }
+
+      /* Merge jobs data into feed if no applications but jobs exist */
+      if (feedData.length === 0 && jobs && jobs.length > 0) {
+        const jobItems = jobs.map(job => renderFeedItem({
+          company: job.company || job.employer || '',
+          role: job.title || job.role || '',
+          grade: job.grade || '',
+          date: job.date || job.posted || '',
+          status: job.status || 'Evaluating',
+        })).join('');
+        if (feedContainer) {
+          feedContainer.innerHTML = `<div class="feed-list">${jobItems}</div>`;
+        }
+      }
+    }
+
+    /* ── Data loading ──────────────────────────────────────────────── */
+    async function loadData() {
+      let applications = [];
+      let jobs = [];
+
+      try {
+        const tsvRes = await fetch('data/applications.tsv');
+        if (tsvRes.ok) {
+          const text = await tsvRes.text();
+          applications = parseTSV(text);
+          console.log(`[Gigsaw] Loaded ${applications.length} application(s) from applications.tsv`);
+        }
+      } catch (err) {
+        console.info('[Gigsaw] applications.tsv not available (no server or file missing). Empty state shown.');
+      }
+
+      try {
+        const jsonRes = await fetch('data/jobs.json');
+        if (jsonRes.ok) {
+          const raw = await jsonRes.json();
+          jobs = Array.isArray(raw) ? raw : (raw.jobs || raw.data || []);
+          console.log(`[Gigsaw] Loaded ${jobs.length} job(s) from jobs.json`);
+        }
+      } catch (err) {
+        console.info('[Gigsaw] jobs.json not available (no server or file missing). Empty state shown.');
+      }
+
+      populateDashboard(applications, jobs);
+    }
+
+    loadData();
+
+    /* ── Button stubs ──────────────────────────────────────────────── */
+    function handleGigsawSearch() {
+      console.info('[Gigsaw] → Run: npx gigsaw search');
+      alert('Run the CLI command:\n\n  /gigsaw search\n\nfrom your terminal to populate the feed.');
+    }
+
+    function handleGigsawBuild() {
+      console.info('[Gigsaw] → Run: npx gigsaw build [company]');
+      alert('Run the CLI command:\n\n  /gigsaw build [company]\n\nfrom your terminal to start a proof build.');
+    }
+  </script>
+</body>
+</html>
