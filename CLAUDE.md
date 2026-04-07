@@ -1,4 +1,5 @@
 # CLAUDE.md — GIGSAW: "The System Is The Resume"
+### *Cut through.*
 
 > This is the master instruction file for Claude Code. It defines the entire Gigsaw system — identity, philosophy, modes, architecture, and behavioral rules.
 
