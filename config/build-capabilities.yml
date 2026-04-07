@@ -1,0 +1,38 @@
+# What JJ can ship fast — used by /gigsaw build to scope proof builds
+
+default_stack:
+  - HTML + Tailwind
+  - JavaScript (vanilla)
+  - SugarCube 2 / Twine (interactive fiction)
+  - Claude API / Anthropic SDK
+  - Firecrawl
+  - Node.js (scripts)
+
+build_speed:
+  solo_weekend: "MVP to live"
+  with_ai: "v1 to shipped in hours"
+
+build_types:
+  - Interactive fiction / narrative tools
+  - Landing pages
+  - Research pipelines
+  - AI-augmented writing tools
+  - Job application tooling (meta)
+  - Data visualization (simple)
+  - Brand microsites
+
+comfort_zone:
+  - Narrative systems
+  - Copywriting + AI workflows
+  - Rapid prototyping
+  - Research synthesis
+
+stretch_zone:
+  - Full-stack web apps
+  - Backend APIs
+  - Data infrastructure
+
+fastest_ship:
+  project: ZETTA Trials
+  time: "one weekend"
+  url: null  # add URL when available

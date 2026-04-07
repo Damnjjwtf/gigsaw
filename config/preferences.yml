@@ -1,0 +1,33 @@
+# Job matching preferences — used by /gigsaw evaluate and /gigsaw search
+
+roles:
+  - Creative Intelligence Engineer
+  - Creative Technologist
+  - AI Creative Director
+  - Copywriter
+  - Brand Strategist
+  - Narrative Designer
+  - Content Strategist
+
+locations:
+  - San Francisco, CA
+  - Remote
+  - New York, NY
+  - Chicago, IL
+
+remote: preferred   # required | preferred | open
+
+salary:
+  min: null         # set when ready
+  currency: USD
+
+dealbreakers: []
+  # Example: no_equity, no_remote, below_min_salary
+
+industries:
+  preferred:
+    - AI / Technology
+    - Creative / Advertising
+    - Gaming / Interactive
+    - Media / Publishing
+  avoid: []

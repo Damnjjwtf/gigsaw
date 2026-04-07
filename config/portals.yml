@@ -1,0 +1,10 @@
+# Companies to monitor for new postings
+# Add target companies here — /gigsaw scan checks these weekly
+
+companies: []
+
+# Example entry:
+# - name: Anthropic
+#   careers_url: https://www.anthropic.com/careers
+#   team_filter: null        # optional: only watch specific team/dept
+#   priority: high           # high | medium | low
