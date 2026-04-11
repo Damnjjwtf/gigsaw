@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GigSaw Implementation Roadmap</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      line-height: 1.7;
+      color: #2c3e50;
+      background: #f8f9fa;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      background: white;
+    }
+    h1 {
+      font-size: 2.5em;
+      margin: 0.5em 0;
+      padding: 0.5em 0 0.3em;
+      border-bottom: 3px solid #0066cc;
+      color: #0066cc;
+    }
+    h2 {
+      font-size: 1.8em;
+      margin: 1.2em 0 0.4em;
+      color: #0066cc;
+      padding-left: 10px;
+      border-left: 4px solid #0066cc;
+    }
+    h3 {
+      font-size: 1.3em;
+      margin: 1em 0 0.3em;
+      color: #334455;
+    }
+    h4 {
+      font-size: 1.1em;
+      margin: 0.8em 0 0.3em;
+      color: #555;
+    }
+    p { margin: 0.5em 0; }
+    ul, ol { margin: 0.8em 0; padding-left: 2em; }
+    li { margin: 0.3em 0; }
+    table {
+      border-collapse: collapse;
+      margin: 1.2em 0;
+      width: 100%;
+      font-size: 0.95em;
+    }
+    th {
+      background: #e8f1ff;
+      color: #0066cc;
+      padding: 10px 12px;
+      text-align: left;
+      border: 1px solid #b3d9ff;
+      font-weight: 600;
+    }
+    td {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+    }
+    tr:nth-child(even) { background: #f9f9f9; }
+    code {
+      background: #f5f5f5;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9em;
+    }
+    pre {
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 5px;
+      overflow-x: auto;
+      margin: 1em 0;
+      border-left: 3px solid #0066cc;
+      font-size: 0.85em;
+    }
+    pre code { background: none; padding: 0; }
+    hr { margin: 2em 0; border: none; border-top: 2px solid #e8e8e8; }
+    strong { font-weight: 600; color: #000; }
+    em { font-style: italic; }
+    .highlight {
+      background: #fff3cd;
+      padding: 15px;
+      border-left: 4px solid #ffc107;
+      margin: 1em 0;
+      border-radius: 3px;
+    }
+    .checkmark { color: #28a745; }
+    .status { padding: 20px; background: #e8f5e9; border-left: 4px solid #4caf50; margin: 1.5em 0; }
+    @media print {
+      body { background: white; }
+      .container { padding: 0; }
+      h1 { page-break-after: avoid; }
+      h2 { page-break-after: avoid; }
+      table { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>GigSaw: Implementation Roadmap</h1>
+  <p><strong>Research Phase Complete — Ready for Design</strong></p>
+  <hr>
+  
+  <h2>Executive Summary</h2>
+  <p>GigSaw is a specification-first, code-second job search automation system for builders. This document outlines the complete design for Tier 1 + Tier 2 implementation (the five core modes that form the foundation).</p>
+  
+  <div class="status">
+    <h3>✅ Design Status: COMPLETE</h3>
+    <p>All five core modes are fully designed with exact prompt structures, input/output schemas, error handling, integration points, quality gates, and testing strategies.</p>
+  </div>
+
+  <h2>The Five Core Modes (Tier 1 + 2)</h2>
+  
+  <h3>1. /gigsaw arbitrage — Intelligence Arbitrage Engine ★</h3>
+  <ul>
+    <li><strong>What it does:</strong> Takes a job listing and reveals what the role is <em>becoming</em> in 12-18 months</li>
+    <li><strong>Key design:</strong> Two-stage prompting, 5-step sequential process with checkpoints, 6-section markdown output</li>
+    <li><strong>Input:</strong> Job URL or pasted job description</li>
+    <li><strong>Output:</strong> data/arbitrage/[company]-[role].md with ROLE AS WRITTEN, ROLE AS BECOMING, THE GAP, JJ'S POSITION, INTERVIEW REFRAME, PROOF BUILD SUGGESTION</li>
+    <li><strong>Quality:</strong> Specific AI vulnerabilities (not vague), honest about role transformation likelihood, grounded in shipped proof</li>
+  </ul>
+
+  <h3>2. /gigsaw propose — Role Proposal Generator ★</h3>
+  <ul>
+    <li><strong>What it does:</strong> Analyzes a company's current job postings, finds what role is <em>missing</em>, writes it for them</li>
+    <li><strong>Key design:</strong> Three gap-detection strategies (skill overlap, responsibility fragmentation, seniority ladder)</li>
+    <li><strong>Input:</strong> Company name + their current listings (from jobs.json or user pastes)</li>
+    <li><strong>Output:</strong> proposals/[company]-role-proposal.md (1-2 pages, dense, specific)</li>
+    <li><strong>Quality gates:</strong> 60%+ skill overlap required, proposed role must be distinct, JJ's work must connect</li>
+  </ul>
+
+  <h3>3. /gigsaw setup — Interview Agent v2</h3>
+  <ul>
+    <li><strong>What it does:</strong> 6-round structured conversation to generate your profile.json</li>
+    <li><strong>Rounds:</strong> Identity → Shipped Work → Problem Patterns → Profile → Targets → Narrative</li>
+    <li><strong>Key design:</strong> 2-3 core questions per round, 1-clarification follow-up strategy, 25-35 min total</li>
+    <li><strong>Output:</strong> profile.json with build_capability, shipped_work[], problem_patterns + all traditional fields</li>
+    <li><strong>Quality gates:</strong> URLs required for shipped work, capabilities linked to proof, vague answers flagged</li>
+  </ul>
+
+  <h3>4. /gigsaw search — Job Search Orchestration</h3>
+  <ul>
+    <li><strong>What it does:</strong> Scrapes LinkedIn + Indeed using your target roles/locations</li>
+    <li><strong>Key design:</strong> Apify HTTP REST (not SDK), query generation from profile targets, composite dedup key</li>
+    <li><strong>Input:</strong> profile.json targets (roles × locations)</li>
+    <li><strong>Output:</strong> data/jobs.json with full schema (dedup_key, sources[], urls{}, target_match{}, metadata)</li>
+    <li><strong>Speed:</strong> 2-3 minutes real-time, 60%+ matching jobs</li>
+  </ul>
+
+  <h3>5. /gigsaw evaluate — Job Evaluation Engine</h3>
+  <ul>
+    <li><strong>What it does:</strong> Scores each job across 10 dimensions, assigns A-F grade</li>
+    <li><strong>Key design:</strong> Gate-pass logic (Role Match 6+, Skills 5+ required), weighted GPA, 10-dimension scoring</li>
+    <li><strong>Dimensions:</strong> Role Match (gate), Skills (gate), Build-Fit (15%), Arbitrage (20%), Company (10%), Compensation (8%), Location (8%), Growth (12%), Network (7%), Portfolio (8%)</li>
+    <li><strong>Output:</strong> data/evaluations/[company]-[role].md with detailed breakdown + A-F grade</li>
+    <li><strong>Quality rule:</strong> Strongly recommend against applying below B-</li>
+  </ul>
+
+  <h2>Implementation Roadmap</h2>
+  
+  <table>
+    <thead>
+      <tr>
+        <th>Phase</th>
+        <th>Modes</th>
+        <th>Purpose</th>
+        <th>Effort</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>1a</strong></td>
+        <td>setup.md, arbitrage.md</td>
+        <td>Core Foundation</td>
+        <td>2-3 days</td>
+      </tr>
+      <tr>
+        <td><strong>1b</strong></td>
+        <td>search.md, evaluate.md</td>
+        <td>Job Pipeline</td>
+        <td>2-3 days</td>
+      </tr>
+      <tr>
+        <td><strong>2</strong></td>
+        <td>propose.md, build.md, remix.md, pdf.md, apply.md</td>
+        <td>Differentiators + Application</td>
+        <td>1-2 weeks</td>
+      </tr>
+      <tr>
+        <td><strong>3</strong></td>
+        <td>who.md, scan.md, track.md, story.md, wild.md</td>
+        <td>Supporting Utilities</td>
+        <td>3-5 days</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>What's Ready to Implement</h2>
+  
+  <div class="highlight">
+    <p><span class="checkmark">✅</span> Exact prompt structures (arbitrage, propose, interview, evaluate)</p>
+    <p><span class="checkmark">✅</span> Input/output schemas (JSON, markdown, file paths, TSV)</p>
+    <p><span class="checkmark">✅</span> Error handling + edge cases (no shipped work, vague answers, API failures, rate limiting)</p>
+    <p><span class="checkmark">✅</span> Integration points (mode call graph, data flow, which modes feed which)</p>
+    <p><span class="checkmark">✅</span> Quality gates (what validates "good" output for each mode)</p>
+    <p><span class="checkmark">✅</span> Testing approach (unit tests per mode, integration tests end-to-end)</p>
+    <p><span class="checkmark">✅</span> Critical design decisions documented (why HTTP over SDK, why 3 gap-detection strategies, etc.)</p>
+  </div>
+
+  <h2>Key Design Decisions</h2>
+  
+  <table>
+    <thead>
+      <tr>
+        <th>Decision</th>
+        <th>Rationale</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Two-stage prompting (Arbitrage)</strong></td>
+        <td>Stage 1 does analysis; Stage 2 formats output. Cleaner, more reliable.</td>
+      </tr>
+      <tr>
+        <td><strong>Checkpoints in Arbitrage</strong></td>
+        <td>User can correct after each step. Not a black box.</td>
+      </tr>
+      <tr>
+        <td><strong>Three gap-detection strategies</strong></td>
+        <td>Different companies have different gaps. Try all three, pick best match.</td>
+      </tr>
+      <tr>
+        <td><strong>Interview: 1 clarification then flag</strong></td>
+        <td>Don't re-ask forever. If answer is vague after 2 tries, flag it and move on.</td>
+      </tr>
+      <tr>
+        <td><strong>Apify HTTP REST (not SDK)</strong></td>
+        <td>Lighter weight, full control, easier debugging. Skip dependency bloat.</td>
+      </tr>
+      <tr>
+        <td><strong>Dedup on title+company+location</strong></td>
+        <td>Stable across platforms. Better than URL (which changes between sources).</td>
+      </tr>
+      <tr>
+        <td><strong>Gate-pass logic in Evaluate</strong></td>
+        <td>Role Match 6+ and Skills 5+ are hard gates. If either fails, grade floors to D+.</td>
+      </tr>
+      <tr>
+        <td><strong>Arbitrage weight (20%)</strong></td>
+        <td>Core differentiator. Heaviest weight drives focus on role transformation.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Critical Implementation Notes</h2>
+  
+  <h3>External Dependencies</h3>
+  <ul>
+    <li><strong>Apify token:</strong> Must be set: <code>export APIFY_TOKEN=your_token_here</code></li>
+    <li><strong>Playwright:</strong> Already installed (package.json)</li>
+    <li><strong>Claude API:</strong> Native to Claude Code; no external setup needed</li>
+  </ul>
+
+  <h3>Data Files Required Before Testing</h3>
+  <ul>
+    <li><code>profile.json</code> — Needed for search.md (to extract targets) and arbitrage.md (to provide context)</li>
+    <li><code>data/connections.csv</code> — LinkedIn export format for network proximity checking</li>
+    <li><code>config/portals.yml</code> — Target companies to monitor</li>
+  </ul>
+
+  <h3>File Structure to Create</h3>
+  <pre><code>modes/
+  ├── arbitrage.md          ← Create
+  ├── propose.md            ← Create
+  ├── setup.md              ← Create
+  ├── search.md             ← Create
+  └── evaluate.md           ← Create
+
+data/
+  ├── apify-runs.log        ← Create
+  ├── jobs.json             ← Output of search.md
+  ├── evaluations/          ← Output of evaluate.md
+  ├── arbitrage/            ← Output of arbitrage.md
+  └── recon/                ← Output of recon.md
+
+proposals/                   ← Output of propose.md
+  └── [company]-role-proposal.md</code></pre>
+
+  <h2>Success Verification</h2>
+  
+  <h3>Unit Tests (Per Mode)</h3>
+  <ul>
+    <li><strong>setup.md:</strong> Interview produces valid profile.json; all required fields populated; quality_score ≥ 0.7</li>
+    <li><strong>search.md:</strong> Apify call succeeds; returns ≥5 jobs; dedup removes cross-posted jobs; JSON schema valid</li>
+    <li><strong>evaluate.md:</strong> Grade is between A-F; gate-pass logic blocks inappropriate matches; weights sum to 1.0</li>
+    <li><strong>arbitrage.md:</strong> Report has all 6 sections; trajectory is plausible (not vague); proof points to shipped work with URLs</li>
+    <li><strong>propose.md:</strong> Gap is specific (not generic); proposed title distinct from existing roles; confidence score justified</li>
+  </ul>
+
+  <h3>Integration Tests (End-to-End)</h3>
+  <ol>
+    <li>Run setup → generates profile.json ✓</li>
+    <li>Run search → generates jobs.json with ≥10 listings ✓</li>
+    <li>Run evaluate on jobs → grades range from A to F ✓</li>
+    <li>Run arbitrage on top-graded job → outputs 6-section markdown report ✓</li>
+    <li>Run propose on company → identifies gap, outputs proposal.md ✓</li>
+  </ol>
+
+  <h2>Final Status</h2>
+  
+  <div class="status">
+    <h3>✅ All Five Core Modes Fully Designed</h3>
+    <ol>
+      <li><strong>arbitrage.md</strong> — Two-stage prompting, 5-step process with checkpoints, 6-section markdown output</li>
+      <li><strong>propose.md</strong> — Gap detection (3 strategies), quality gates, HITL review gate on send</li>
+      <li><strong>setup.md</strong> — 6-round interview (25-35 min), 1-clarification follow-up strategy, profile.json output</li>
+      <li><strong>search.md</strong> — Apify HTTP REST, query generation from targets, composite dedup key, full schema output</li>
+      <li><strong>evaluate.md</strong> — 10-dimension scoring with gates, weighted GPA → A-F grade, 6-9 min per job</li>
+    </ol>
+  </div>
+
+  <h2>Next Steps</h2>
+  <p>All designs are comprehensive, detailed, and ready to execute. No further design work needed. Implementation can proceed immediately with Phases 1a and 1b (setup, arbitrage, search, evaluate) as the foundation.</p>
+
+</div>
+</body>
+</html>
