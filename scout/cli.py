@@ -13,6 +13,13 @@ from scout.pipeline import GigsawPipeline
 from scout.wild import WildEngine
 from scout.dashboard import Dashboard
 from scout.digest import DigestGenerator
+from scout.arbitrage import ArbitrageEngine
+from scout.propose import ProposeEngine
+from scout.who import NetworkScanner
+from scout.recon import ReconEngine
+from scout.watch import Watcher
+from scout.alerts import AlertSystem
+from scout.remix import RemixEngine
 
 
 def format_amount(amount_usd):
@@ -294,6 +301,179 @@ def cmd_digest(days=1):
     return 0
 
 
+def cmd_arbitrage(input_arg=None):
+    """Run intelligence arbitrage analysis on a job description or company."""
+    print(f'\n--- SCOUT ARBITRAGE ---')
+
+    if not Config.ANTHROPIC_API_KEY:
+        print('✗ ANTHROPIC_API_KEY not set')
+        return 1
+
+    if not input_arg:
+        print('✗ Specify a company name or paste a job description')
+        print('  Usage: /scout arbitrage "Company Name"')
+        print('  Or pipe text: cat job.txt | /scout arbitrage -')
+        return 1
+
+    # Allow piping job text via "-"
+    if input_arg == '-':
+        job_text = sys.stdin.read().strip()
+        company_name = None
+    else:
+        company_name = input_arg
+        # Pull description from storage
+        storage = ScoutStorage()
+        company = storage.get_company(company_name)
+        if not company:
+            print(f'✗ Company "{company_name}" not in database. Run /scout feed first or use - to pipe a JD.')
+            return 1
+        job_text = company.get('description', '') or ''
+
+    engine = ArbitrageEngine()
+    print(f'Analyzing {company_name or "job description"}...\n')
+    result = engine.analyze(job_text, company_name=company_name)
+    print(result['report'])
+    print('\n---\n')
+    return 0
+
+
+def cmd_propose(company_name=None):
+    """Generate a role proposal for a company that hasn't posted the right role."""
+    print(f'\n--- SCOUT PROPOSE ---')
+
+    if not Config.ANTHROPIC_API_KEY:
+        print('✗ ANTHROPIC_API_KEY not set')
+        return 1
+
+    if not company_name:
+        print('✗ Specify a company: /scout propose "Company Name"')
+        return 1
+
+    engine = ProposeEngine()
+    print(f'Generating role proposal for {company_name}...\n')
+    result = engine.generate_proposal(company_name)
+    print(result['proposal'])
+    if result.get('saved_to'):
+        print(f'\nSaved to: {result["saved_to"]}')
+    print('\n---\n')
+    return 0
+
+
+def cmd_who(company_name=None, draft=False):
+    """Cross-reference LinkedIn connections for warm paths into a company."""
+    print(f'\n--- SCOUT WHO ---')
+
+    if not company_name:
+        print('✗ Specify a company: /scout who "Company Name"')
+        return 1
+
+    scanner = NetworkScanner()
+    print(scanner.report(company_name, generate_drafts=draft))
+    return 0
+
+
+def cmd_recon(company_name=None):
+    """Generate a deep recon brief for a company."""
+    print(f'\n--- SCOUT RECON ---')
+
+    if not Config.ANTHROPIC_API_KEY:
+        print('✗ ANTHROPIC_API_KEY not set')
+        return 1
+
+    if not company_name:
+        print('✗ Specify a company: /scout recon "Company Name"')
+        return 1
+
+    engine = ReconEngine()
+    print(f'Researching {company_name}...\n')
+    result = engine.deep_dive(company_name)
+    print(result['report'])
+    if result.get('saved_to'):
+        print(f'\nSaved to: {result["saved_to"]}')
+    print('\n---\n')
+    return 0
+
+
+def cmd_watch(once=False, interval=60, install_cron=None, install_launchd=False):
+    """Run pipeline on a schedule, or install as cron/launchd."""
+    print(f'\n--- SCOUT WATCH ---')
+
+    watcher = Watcher()
+
+    if install_cron:
+        line = watcher.install_cron(frequency=install_cron)
+        print('Add this line to your crontab (run `crontab -e`):\n')
+        print(line)
+        print('\nOr save to a file: scout/install/scout.cron\n')
+        return 0
+
+    if install_launchd:
+        plist = watcher.install_launchd()
+        print('Save this as ~/Library/LaunchAgents/com.gigsaw.scout.watch.plist:\n')
+        print(plist)
+        print('\nThen run: launchctl load ~/Library/LaunchAgents/com.gigsaw.scout.watch.plist\n')
+        return 0
+
+    if once:
+        summary = watcher.run_once()
+        print(f'\n✓ Pipeline cycle complete')
+        print(f'  Fetched: {summary["fetched"]}')
+        print(f'  New: {summary["new"]}')
+        print(f'  Scored: {summary["scored"]}')
+        print(f'  High-value: {summary["high_value"]}')
+        print(f'  Alerts sent: {summary["alerts_sent"]}')
+        print(f'  Elapsed: {summary["elapsed_seconds"]:.1f}s')
+        if summary['errors']:
+            print(f'  Errors: {", ".join(summary["errors"])}')
+        return 0
+
+    # Run as daemon loop
+    print(f'Starting watch loop (every {interval}m). Press Ctrl+C to stop.\n')
+    watcher.loop(interval_minutes=interval)
+    return 0
+
+
+def cmd_alerts():
+    """Show alert configuration status."""
+    print('\n--- SCOUT ALERTS ---')
+    alerts = AlertSystem()
+    status = alerts.status()
+    print(f'  Slack:    {"✓ configured" if status["slack"] else "○ set SLACK_WEBHOOK_URL"}')
+    print(f'  Discord:  {"✓ configured" if status["discord"] else "○ set DISCORD_WEBHOOK_URL"}')
+    print(f'  Email:    {"✓ configured" if status["email"] else "○ set ALERT_EMAIL"}')
+    print(f'  File log: ✓ always on (data/alerts/)')
+    print()
+    return 0
+
+
+def cmd_remix(company_name=None, role=None):
+    """Generate tailored application package: resume, cover, portfolio."""
+    print(f'\n--- SCOUT REMIX ---')
+
+    if not Config.ANTHROPIC_API_KEY:
+        print('✗ ANTHROPIC_API_KEY not set')
+        return 1
+
+    if not company_name:
+        print('✗ Specify a company: /scout remix "Company Name" [Role]')
+        return 1
+
+    engine = RemixEngine()
+    print(f'Generating application package for {company_name}'
+          + (f' / {role}' if role else '') + '...\n')
+    result = engine.remix(company_name, role=role)
+
+    if result.get('success'):
+        print(f'✓ Package generated at: {result["output_dir"]}')
+        print('  Files:')
+        for f in result.get('files', []):
+            print(f'    - {f}')
+        print('\n  Review carefully before sending. Edit anything that doesn\'t feel right.\n')
+    else:
+        print(f'✗ {result.get("error", "Unknown error")}')
+    return 0
+
+
 def cmd_config_check():
     """Check and display configuration status."""
     Config.status()
@@ -354,19 +534,29 @@ def main():
         print('  export            Export companies to JSON')
         print('\nEVALUATION:')
         print('  score             Score companies against JJ\'s profile')
+        print('  recon [name]      Deep company research brief')
+        print('  arbitrage [name]  Read role as lagging indicator (★ core differentiator)')
         print('  inspect [name]    Check career page for open roles')
         print('\nOUTREACH:')
         print('  draft [name]      Generate cold outreach draft')
+        print('  propose [name]    Write the role they haven\'t posted yet (★)')
+        print('  remix [name]      Tailored resume + cover + portfolio (★)')
         print('  wild [name]       Generate unorthodox application play')
+        print('  who [name]        Find warm paths via LinkedIn connections (★)')
         print('  digest            Daily intelligence briefing')
         print('  push [name]       Push to GIGSAW pipeline')
+        print('\nAUTOMATION:')
+        print('  watch [--once]    Run pipeline cycle (or --install-cron daily)')
+        print('  alerts            Alert channel configuration status')
         print('\nMETA:')
-        print('  config            Check configuration status')
+        print('  config            Check API key configuration')
         print('\nOptions:')
         print('  --days N          Set recency window (default: 60)')
         print('  --limit N         Limit results (default: 5)')
         print('  --stage SEED      Filter by funding stage')
         print('  --sources hn,yc   Comma-separated: techcrunch,yc,sequoia,hackernews')
+        print('  --draft           Generate warm outreach draft (with /scout who)')
+        print('  --interval N      Watch interval in minutes (default: 60)')
         return 0
 
     command = sys.argv[1]
@@ -407,6 +597,39 @@ def main():
         return cmd_dashboard()
     elif command == 'digest':
         return cmd_digest(days=days)
+    elif command == 'arbitrage':
+        target = sys.argv[2] if len(sys.argv) > 2 else None
+        return cmd_arbitrage(target)
+    elif command == 'propose':
+        target = sys.argv[2] if len(sys.argv) > 2 else None
+        return cmd_propose(target)
+    elif command == 'who':
+        target = sys.argv[2] if len(sys.argv) > 2 and not sys.argv[2].startswith('--') else None
+        draft = '--draft' in sys.argv
+        return cmd_who(target, draft=draft)
+    elif command == 'recon':
+        target = sys.argv[2] if len(sys.argv) > 2 else None
+        return cmd_recon(target)
+    elif command == 'watch':
+        once = '--once' in sys.argv
+        install_cron = None
+        if '--install-cron' in sys.argv:
+            idx = sys.argv.index('--install-cron')
+            install_cron = sys.argv[idx + 1] if idx + 1 < len(sys.argv) else 'daily'
+        install_launchd = '--install-launchd' in sys.argv
+        watch_interval = 60
+        if '--interval' in sys.argv:
+            idx = sys.argv.index('--interval')
+            if idx + 1 < len(sys.argv):
+                watch_interval = int(sys.argv[idx + 1])
+        return cmd_watch(once=once, interval=watch_interval,
+                         install_cron=install_cron, install_launchd=install_launchd)
+    elif command == 'alerts':
+        return cmd_alerts()
+    elif command == 'remix':
+        target = sys.argv[2] if len(sys.argv) > 2 and not sys.argv[2].startswith('--') else None
+        role = sys.argv[3] if len(sys.argv) > 3 and not sys.argv[3].startswith('--') else None
+        return cmd_remix(target, role=role)
     elif command == 'list':
         return cmd_list(limit=limit, days=days)
     elif command == 'config':

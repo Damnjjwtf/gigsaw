@@ -16,7 +16,13 @@ builds/*/node_modules/
 node_modules/
 *.log
 
-# Generated data (test output, recon files)
+# Generated data (test output, recon files, etc.)
 data/recon/
 data/evaluations/
+data/alerts/
+data/watch_summaries/
 scout/exports/
+scout/arbitrage/
+proposals/
+output/
+watch.log

@@ -21,6 +21,13 @@ from scout.dashboard import Dashboard
 from scout.digest import DigestGenerator
 from scout.sources.hackernews import HackerNewsSource
 from scout.sources.apify_source import ApifyScraper
+from scout.arbitrage import ArbitrageEngine
+from scout.propose import ProposeEngine
+from scout.who import NetworkScanner
+from scout.recon import ReconEngine
+from scout.watch import Watcher
+from scout.alerts import AlertSystem
+from scout.remix import RemixEngine
 
 
 class TestStorage(unittest.TestCase):
@@ -534,6 +541,192 @@ class TestDigestGenerator(unittest.TestCase):
         self.assertIn('Action Queue', result)
 
 
+class TestArbitrageEngine(unittest.TestCase):
+    """Test arbitrage analysis."""
+
+    def setUp(self):
+        if not Config.ANTHROPIC_API_KEY:
+            self.skipTest('ANTHROPIC_API_KEY not set')
+        self.engine = ArbitrageEngine()
+
+    def test_analyze_returns_report(self):
+        """Test arbitrage returns a structured report."""
+        result = self.engine.analyze(
+            'Senior Brand Designer needed. Lead our brand voice and visual identity.',
+            company_name=None
+        )
+
+        self.assertIn('report', result)
+        self.assertIn('timestamp', result)
+        self.assertGreater(len(result['report']), 100)
+
+
+class TestProposeEngine(unittest.TestCase):
+    """Test role proposal generation."""
+
+    def setUp(self):
+        if not Config.ANTHROPIC_API_KEY:
+            self.skipTest('ANTHROPIC_API_KEY not set')
+        self.engine = ProposeEngine()
+
+    def test_generate_proposal_format(self):
+        """Test proposal output structure."""
+        result = self.engine.generate_proposal('TestCorp')
+
+        self.assertIn('proposal', result)
+        self.assertIn('company', result)
+        self.assertEqual(result['company'], 'TestCorp')
+
+
+class TestNetworkScanner(unittest.TestCase):
+    """Test LinkedIn connection cross-reference."""
+
+    def setUp(self):
+        self.scanner = NetworkScanner()
+
+    def test_no_connections_file(self):
+        """Test graceful handling when connections.csv doesn't exist."""
+        # Temporarily point to a non-existent file
+        original = self.scanner.connections_path
+        self.scanner.connections_path = Path('/nonexistent/path/connections.csv')
+
+        try:
+            result = self.scanner.find_connections_at('AnyCompany')
+            self.assertIn('error', result)
+            self.assertEqual(result.get('connections', []), [])
+        finally:
+            self.scanner.connections_path = original
+
+    def test_report_no_file(self):
+        """Test report formatting without connections file."""
+        original = self.scanner.connections_path
+        self.scanner.connections_path = Path('/nonexistent/path/connections.csv')
+
+        try:
+            output = self.scanner.report('AnyCompany')
+            self.assertIsInstance(output, str)
+            self.assertIn('AnyCompany', output)
+        finally:
+            self.scanner.connections_path = original
+
+
+class TestReconEngine(unittest.TestCase):
+    """Test recon brief generation."""
+
+    def setUp(self):
+        if not Config.ANTHROPIC_API_KEY:
+            self.skipTest('ANTHROPIC_API_KEY not set')
+        self.engine = ReconEngine()
+
+    def test_recon_unknown_company(self):
+        """Test recon on unknown company returns error gracefully."""
+        result = self.engine.deep_dive('NonexistentCompanyXYZ123')
+
+        self.assertIn('report', result)
+        self.assertEqual(result.get('success'), False)
+
+
+class TestWatcher(unittest.TestCase):
+    """Test scheduler/watch system."""
+
+    def setUp(self):
+        self.watcher = Watcher()
+
+    def test_install_cron_returns_string(self):
+        """Test cron line generation."""
+        line = self.watcher.install_cron(frequency='daily')
+        self.assertIsInstance(line, str)
+        self.assertIn('scout.cli', line)
+        self.assertIn('watch', line)
+
+    def test_install_launchd_returns_plist(self):
+        """Test launchd plist generation."""
+        plist = self.watcher.install_launchd()
+        self.assertIsInstance(plist, str)
+        self.assertIn('<plist', plist)
+        self.assertIn('com.gigsaw.scout.watch', plist)
+
+
+class TestAlertSystem(unittest.TestCase):
+    """Test alert dispatching."""
+
+    def setUp(self):
+        self.alerts = AlertSystem()
+
+    def test_status_returns_dict(self):
+        """Test status method returns expected keys."""
+        status = self.alerts.status()
+        self.assertIn('slack', status)
+        self.assertIn('discord', status)
+        self.assertIn('email', status)
+        self.assertIn('file_log', status)
+        self.assertTrue(status['file_log'])  # Always on
+
+    def test_format_alert(self):
+        """Test alert message formatting."""
+        company = {
+            'name': 'TestCorp',
+            'score': 85,
+            'grade': 'B',
+            'stage': 'Series A',
+            'amount_usd': 5_000_000,
+            'rationale': 'Strong fit for creative work',
+            'website': 'https://test.com'
+        }
+        message = self.alerts._format_alert(company)
+        self.assertIn('TestCorp', message)
+        self.assertIn('85', message)
+        self.assertIn('B', message)
+
+    def test_log_to_file(self):
+        """Test that alerts get logged to local file."""
+        company = {
+            'name': 'LogTest',
+            'score': 90,
+            'grade': 'A',
+            'stage': 'Seed',
+            'amount_usd': 1_000_000,
+            'rationale': 'Test',
+            'website': ''
+        }
+        message = self.alerts._format_alert(company)
+        self.alerts._log_to_file(company, message)
+
+        # Verify the alert file was written
+        timestamp = datetime.now().strftime('%Y%m%d')
+        alert_file = self.alerts.alerts_dir / f'alerts_{timestamp}.log'
+        self.assertTrue(alert_file.exists())
+
+
+class TestRemixEngine(unittest.TestCase):
+    """Test application package generator."""
+
+    def setUp(self):
+        self.engine = RemixEngine()
+
+    def test_load_profile_fallback(self):
+        """Test profile loading falls back to default when missing."""
+        original = self.engine
+        # Temporarily override the path
+        from scout import remix
+        original_path = remix.PROFILE_PATH
+        remix.PROFILE_PATH = Path('/nonexistent/profile.json')
+
+        try:
+            profile = self.engine._load_profile()
+            self.assertIn('name', profile)
+            self.assertIn('shipped_work', profile)
+            self.assertGreater(len(profile['shipped_work']), 0)
+        finally:
+            remix.PROFILE_PATH = original_path
+
+    def test_remix_unknown_company(self):
+        """Test remix gracefully handles unknown company."""
+        result = self.engine.remix('NonexistentCompanyXYZ987')
+        self.assertEqual(result.get('success'), False)
+        self.assertIn('error', result)
+
+
 def run_tests():
     """Run all tests."""
     loader = unittest.TestLoader()
@@ -550,6 +743,13 @@ def run_tests():
     suite.addTests(loader.loadTestsFromTestCase(TestWildEngine))
     suite.addTests(loader.loadTestsFromTestCase(TestDashboard))
     suite.addTests(loader.loadTestsFromTestCase(TestDigestGenerator))
+    suite.addTests(loader.loadTestsFromTestCase(TestArbitrageEngine))
+    suite.addTests(loader.loadTestsFromTestCase(TestProposeEngine))
+    suite.addTests(loader.loadTestsFromTestCase(TestNetworkScanner))
+    suite.addTests(loader.loadTestsFromTestCase(TestReconEngine))
+    suite.addTests(loader.loadTestsFromTestCase(TestWatcher))
+    suite.addTests(loader.loadTestsFromTestCase(TestAlertSystem))
+    suite.addTests(loader.loadTestsFromTestCase(TestRemixEngine))
 
     runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(suite)
