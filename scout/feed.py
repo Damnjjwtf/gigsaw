@@ -2,6 +2,8 @@ import requests
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 from scout.storage import ScoutStorage
+from scout.sources.hackernews import HackerNewsSource
+from scout.sources.apify_source import ApifyScraper
 import re
 
 
@@ -133,113 +135,19 @@ class Feed:
         return new_count
 
     def fetch_yc_companies(self):
-        """Fetch recent Y Combinator companies from public page."""
-        print('[...] fetching Y Combinator companies')
-        companies = []
-
-        try:
-            # YC publishes a directory of companies at ycombinator.com/companies
-            # For MVP, use sample data of known recent YC companies
-            # In production, this would use Apify + YC's API or scraper
-            yc_companies = [
-                {
-                    'name': 'Pinecone',
-                    'description': 'Vector database for AI applications',
-                    'website': 'https://pinecone.io',
-                    'stage': 'Series B',
-                    'amount_usd': 100_000_000,
-                    'announced_date': datetime(2023, 11, 15).isoformat(),
-                    'investors': ['Sequoia', 'Menlo Ventures'],
-                    'location': 'San Francisco, CA',
-                    'source': 'yc'
-                },
-                {
-                    'name': 'Figma',
-                    'description': 'Collaborative design platform',
-                    'website': 'https://figma.com',
-                    'stage': 'Series D',
-                    'amount_usd': 200_000_000,
-                    'announced_date': datetime(2023, 9, 20).isoformat(),
-                    'investors': ['Sequoia', 'Benchmark'],
-                    'location': 'San Francisco, CA',
-                    'source': 'yc'
-                },
-                {
-                    'name': 'Retool',
-                    'description': 'Internal tool builder for enterprises',
-                    'website': 'https://retool.com',
-                    'stage': 'Series B',
-                    'amount_usd': 40_000_000,
-                    'announced_date': datetime(2023, 6, 14).isoformat(),
-                    'investors': ['Spark Capital', 'Khosla'],
-                    'location': 'San Francisco, CA',
-                    'source': 'yc'
-                }
-            ]
-
-            for company in yc_companies:
-                companies.append(company)
-
-            print(f'✓ Y Combinator: {len(companies)} companies extracted')
-            return companies
-
-        except Exception as e:
-            print(f'✗ YC fetch failed: {str(e)}')
-            return []
+        """Fetch Y Combinator companies via Apify (with fallback)."""
+        scraper = ApifyScraper()
+        return scraper.fetch_yc_companies(limit=20)
 
     def fetch_sequoia_companies(self):
-        """Fetch Sequoia Capital portfolio companies."""
-        print('[...] fetching Sequoia portfolio companies')
-        companies = []
+        """Fetch Sequoia Capital portfolio via Apify (with fallback)."""
+        scraper = ApifyScraper()
+        return scraper.fetch_sequoia_companies(limit=20)
 
-        try:
-            # Sequoia publishes portfolio at sequoiacap.com/companies
-            # For MVP, use known Sequoia-backed companies in AI/creative space
-            sequoia_companies = [
-                {
-                    'name': 'OpenAI',
-                    'description': 'AI research and deployment company',
-                    'website': 'https://openai.com',
-                    'stage': 'Series E+',
-                    'amount_usd': 200_000_000,
-                    'announced_date': datetime(2023, 10, 13).isoformat(),
-                    'investors': ['Sequoia', 'Microsoft'],
-                    'location': 'San Francisco, CA',
-                    'source': 'sequoia'
-                },
-                {
-                    'name': 'Stripe',
-                    'description': 'Payment processing for internet businesses',
-                    'website': 'https://stripe.com',
-                    'stage': 'Series F+',
-                    'amount_usd': 700_000_000,
-                    'announced_date': datetime(2023, 3, 30).isoformat(),
-                    'investors': ['Sequoia', 'Andreessen Horowitz'],
-                    'location': 'San Francisco, CA',
-                    'source': 'sequoia'
-                },
-                {
-                    'name': 'Canva',
-                    'description': 'Design platform for non-designers',
-                    'website': 'https://canva.com',
-                    'stage': 'Series D',
-                    'amount_usd': 200_000_000,
-                    'announced_date': datetime(2023, 4, 27).isoformat(),
-                    'investors': ['Sequoia', 'Benchmark'],
-                    'location': 'Sydney, Australia',
-                    'source': 'sequoia'
-                }
-            ]
-
-            for company in sequoia_companies:
-                companies.append(company)
-
-            print(f'✓ Sequoia: {len(companies)} companies extracted')
-            return companies
-
-        except Exception as e:
-            print(f'✗ Sequoia fetch failed: {str(e)}')
-            return []
+    def fetch_hackernews(self, days=60, limit=100):
+        """Fetch hiring companies from Hacker News Who's Hiring thread."""
+        source = HackerNewsSource()
+        return source.fetch_companies(days=days, limit=limit)
 
     def fetch_sample_data(self):
         """Return recent sample funding data for MVP testing."""
@@ -311,7 +219,7 @@ class Feed:
     def fetch_all(self, days=60, sources=None):
         """Orchestrate all enabled sources."""
         if sources is None:
-            sources = ['techcrunch', 'yc', 'sequoia']
+            sources = ['techcrunch', 'yc', 'sequoia', 'hackernews']
 
         all_companies = []
 
@@ -320,7 +228,7 @@ class Feed:
             if companies:
                 all_companies.extend(companies)
             else:
-                # Fallback: use sample data for MVP
+                # Fallback: use sample data
                 companies = self.fetch_sample_data()
                 all_companies.extend(companies)
 
@@ -330,6 +238,10 @@ class Feed:
 
         if 'sequoia' in sources:
             companies = self.fetch_sequoia_companies()
+            all_companies.extend(companies)
+
+        if 'hackernews' in sources or 'hn' in sources:
+            companies = self.fetch_hackernews(days=days)
             all_companies.extend(companies)
 
         if 'crunchbase' in sources:

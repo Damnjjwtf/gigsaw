@@ -2,53 +2,65 @@
 
 **Thesis:** Funded startups are a lagging indicator of hiring need. Show up before the job post exists.
 
-## Phase 2 Complete ✓
+## Phase 3 Complete ✓
 
-Full-featured startup intelligence system with scoring, drafting, career page inspection, and GIGSAW integration.
+Full-featured startup intelligence system with multi-source feeds, Claude-powered scoring/drafting, career inspection, dashboard, daily digests, unorthodox plays, and GIGSAW integration.
 
 ## Commands
 
-### Phase 1: Data Discovery
+### Discovery
 ```bash
-# Fetch recently funded startups from all sources
-python3 -m scout.cli feed [--days 60] [--limit 5] [--stage SEED] [--sources yc,sequoia]
+# Fetch from all sources (TechCrunch, YC, Sequoia, Hacker News)
+python3 -m scout.cli feed [--days 60] [--limit 5] [--sources hn,yc]
 
-# List companies in local database
-python3 -m scout.cli list [--limit 10] [--days 60]
+# At-a-glance pipeline status
+python3 -m scout.cli dashboard
+
+# List companies in database
+python3 -m scout.cli list [--limit 10]
 
 # Export to JSON
 python3 -m scout.cli export
 ```
 
-### Phase 2: Evaluation & Outreach
+### Evaluation
 ```bash
-# Score all recent companies against JJ's profile (requires ANTHROPIC_API_KEY)
+# Score companies against JJ's profile (Claude API)
 python3 -m scout.cli score [--days 60]
-
-# Generate cold outreach draft for a company
-python3 -m scout.cli draft "Company Name"
 
 # Check career page for open roles
 python3 -m scout.cli inspect "Company Name"
+```
 
-# Push high-value company to GIGSAW pipeline
+### Outreach
+```bash
+# Generate cold outreach draft (Claude API)
+python3 -m scout.cli draft "Company Name"
+
+# Generate unorthodox application play (Claude API)
+python3 -m scout.cli wild "Company Name"
+python3 -m scout.cli wild  # general brainstorm
+
+# Daily intelligence briefing (Claude API)
+python3 -m scout.cli digest [--days 1]
+
+# Push high-value company to GIGSAW
 python3 -m scout.cli push "Company Name"
 ```
 
-### Config & Debug
+### Meta
 ```bash
-python3 -m scout.cli config  # Show API key status
+python3 -m scout.cli config  # API key status
 ```
 
 ## Setup
 
-### 1. Environment Variables
-
+### Environment Variables
 ```bash
-# Required for Phase 2
-export ANTHROPIC_API_KEY="sk-..."
+# Required for evaluation/outreach/wild/digest
+export ANTHROPIC_API_KEY="sk-ant-..."
 
-# Required for advanced sources (Phase 3)
+# Required for Apify-based YC/Sequoia scraping (falls back to samples)
 export APIFY_API_TOKEN="apify_api_..."
 
 # Optional
@@ -56,142 +68,156 @@ export SCOUT_DB_PATH="/custom/path/scout.db"
 export SCOUT_EXPORT_DIR="/custom/path/exports"
 ```
 
-### 2. Dependencies
-
+### Dependencies
 ```bash
 pip3 install anthropic requests
 ```
 
-All other functionality uses Python stdlib (sqlite3, xml.etree, json, etc.).
-
-### 3. Verify Setup
-
-```bash
-python3 -m scout.cli config
-```
+All other functionality uses Python stdlib (sqlite3, xml.etree, json).
 
 ## Architecture
 
 ```
 scout/
 ├── __init__.py           Package entry
-├── config.py             API key management & validation
-├── storage.py            SQLite schema + queries (companies, scores, drafts, inspections)
-├── feed.py               Data source orchestration (TechCrunch, Y Combinator, Sequoia)
-├── score.py              Claude API scoring engine (0-100 with detailed rationale)
-├── draft.py              Claude API outreach draft generation
-├── careers.py            Career page inspection & role detection
-├── pipeline.py           GIGSAW integration (recon files, tracker updates)
-├── cli.py                Command routing & output formatting
-├── test_scout.py         Comprehensive test suite (17 tests, all passing)
-└── README.md             This file
+├── config.py             API key management
+├── storage.py            SQLite (companies, scores, drafts, inspections)
+├── feed.py               Source orchestration
+├── score.py              Claude API scoring (0-100 across 6 factors)
+├── draft.py              Claude API outreach generation
+├── careers.py            Career page inspection
+├── pipeline.py           GIGSAW integration
+├── wild.py               Claude API unorthodox plays generator ★
+├── dashboard.py          Pipeline status renderer ★
+├── digest.py             Claude API daily briefing ★
+├── cli.py                Command routing
+├── test_scout.py         28 tests, all passing
+├── README.md             This file
+└── sources/              Modular data source fetchers
+    ├── __init__.py
+    ├── hackernews.py     Who's Hiring thread parser ★
+    └── apify_source.py   YC + Sequoia via Apify ★
+
+★ = New in Phase 3
 ```
 
 ## Data Sources
 
-### Free & Scrapeable (Current)
-- **TechCrunch RSS** — funding announcements (fallback to sample data on block)
-- **Y Combinator** — recent batches, portfolio companies
-- **Sequoia Capital** — portfolio companies with public profiles
+| Source | Type | Auth | Status |
+|--------|------|------|--------|
+| TechCrunch RSS | Funding announcements | None | Working (with sample fallback) |
+| Y Combinator | Active portfolio | Apify | Working (with sample fallback) |
+| Sequoia Capital | Portfolio companies | Apify | Working (with sample fallback) |
+| Hacker News "Who's Hiring" | Hiring direct from companies | None | Working (with sample fallback) |
+| Crunchbase API | Structured funding | Paid | Skipped (not free) |
 
-All sources implemented with proper fallback handling.
-
-### Paid APIs (Phase 3, Optional)
-- **Crunchbase API** — structured funding data (not free, optional)
-- **Apify actors** — advanced scraping for career pages, Product Hunt, etc.
+All sources have automatic fallback to curated sample data when network is unavailable, so the system always works.
 
 ## Scoring System
 
 **Scored 0-100 across 6 factors:**
+- Creative Need (0-30) — copywriter/narrative/content/brand demand
+- AI Adjacency (0-20) — AI tools, AI workflows, AI-adjacent creative
+- Stage Fit (0-15) — earlier stages = more likely to hire generalists
+- Hiring Urgency (0-15) — recent funding signals
+- Location Fit (0-10) — Bay Area > California > Remote > Other
+- Brand Voice (0-10) — public voice, community, narrative focus
 
-1. **Creative Need (0-30)** — Does company need copywriter/narrative/content/brand lead?
-2. **AI Adjacency (0-20)** — Building AI, using AI internally, or AI-adjacent work?
-3. **Stage Fit (0-15)** — Seed > Series A > Series B > Series C
-4. **Hiring Urgency (0-15)** — Recent funding = higher urgency
-5. **Location Fit (0-10)** — Bay Area > California > Remote > Other
-6. **Brand Voice (0-10)** — Strong public voice, community, narrative focus?
+Grades: A (90-100), B (80-89), C (70-79), D (60-69), F (0-59).
 
-**Grading:**
-- **90-100 (A):** Perfect fit, immediate outreach
-- **80-89 (B):** Strong fit, high priority
-- **70-79 (C):** Good fit, consider outreach
-- **60-69 (D):** Moderate fit, lower priority
-- **0-59 (F):** Weak fit, not recommended
+## Phase 3 Highlights
 
-**JJ's Profile (used for scoring):**
-- Title: Copywriter & Creative Intelligence Engineer (CIE)
-- Background: Academy at Goodby Silverstein & Partners
-- Shipped: ZETTA Trials, Cribsheet, The Recipe Book
-- Building: Jeli (narrative OS), HydePark.news, fandom.market
-- Location: San Francisco Bay Area
-- Target roles: Copywriting, creative strategy, brand narrative, content, AI-adjacent
+### `/scout wild` — Unorthodox Plays
+Generates specific, named plays (not generic advice) using JJ's actual shipped work as context. Each play includes:
+- Memorable name + category
+- The insight (why THIS play for THIS company)
+- 5-7 numbered execution steps with timing
+- The risk (honest)
+- The win (full picture, not just an interview)
+
+Example output: "The Constitutional Twine — build an interactive Twine version of Anthropic's published research..."
+
+### `/scout dashboard` — At-a-Glance Status
+Terminal dashboard showing:
+- Total companies, recent additions, scored, drafted, inspected
+- Score distribution histogram
+- Top targets (score 80+)
+- Recent fetch runs
+- Suggested next actions based on pipeline state
+
+### `/scout digest` — Daily Briefing
+Markdown digest with:
+- Top move today (single most important action)
+- High-value targets (80+)
+- Watch list (70-79)
+- Pattern notice (signals across the day's data)
+- Action queue (concrete checkboxes)
+
+Pattern detection is genuinely useful — Claude identifies clusters and trends across batches.
+
+### Hacker News "Who's Hiring" Source
+Parses the monthly thread on Hacker News. Each comment is a hiring company that wrote directly with role + tech stack. Better signal than aggregators because companies write the post themselves.
 
 ## Testing
 
-### Run Full Test Suite
 ```bash
 python3 -m scout.test_scout
 ```
 
-**Test Coverage: 17 tests, all passing**
-- Storage: company insertion, retrieval, deduplication, scoring, drafts, inspections
-- Feed: all data sources, fallback handling
-- Score: format validation, batch processing
-- Draft: generation and formatting
-- Careers: HTML parsing, role detection
-- Pipeline: GIGSAW recon file creation, tracker updates
+**28 tests, all passing:**
+- Storage (6) — insertion, retrieval, deduplication, scores, drafts, inspections
+- Feed (4) — orchestration + all sources
+- Score (2) — format validation, batch processing
+- Draft (1) — generation and formatting
+- Careers (2) — HTML parsing, role detection
+- Pipeline (2) — GIGSAW recon files, tracker updates
+- HackerNews (3) — sample data, post parsing, edge cases
+- Apify (2) — fallback behavior
+- Wild (2) — play generation
+- Dashboard (3) — rendering, stats structure, suggestions
+- Digest (1) — empty digest format
+
+## Workflow
+
+```bash
+# Morning routine (3 commands)
+/scout feed          # Pull fresh startups
+/scout score         # Evaluate against profile
+/scout digest        # Get briefed in 60 seconds
+
+# When a target catches your eye
+/scout draft "Company"     # Cold outreach
+/scout wild "Company"      # Unorthodox play
+/scout inspect "Company"   # Career page check
+/scout push "Company"      # Send to GIGSAW
+
+# Anytime you want a state check
+/scout dashboard
+```
 
 ## GIGSAW Integration
 
-When you push a high-value company (score 75+) to GIGSAW:
-
-1. **Recon file created:** `/gigsaw/data/recon/[company].md`
-   - Company overview, funding details, SCOUT assessment, hiring signals
-
-2. **Tracker updated:** `/gigsaw/data/applications.tsv`
-   - Entry added with company, score, grade, and status
-
-3. **Available commands:**
-   ```bash
-   /gigsaw recon [company]    Deep dive with web research
-   /gigsaw build [company]    Propose a proof build
-   /gigsaw propose [company]  Draft a custom role proposal
-   ```
-
-## Example Workflow
-
-```bash
-# 1. Fetch recently funded startups
-python3 -m scout.cli feed --limit 20
-
-# 2. Score all companies against your profile
-python3 -m scout.cli score
-
-# 3. For high-scoring companies, generate outreach
-python3 -m scout.cli draft "Anthropic"
-python3 -m scout.cli inspect "Anthropic"
-
-# 4. Push to GIGSAW for deeper processing
-python3 -m scout.cli push "Anthropic"
-
-# 5. Continue in GIGSAW
-/gigsaw recon anthropic
-/gigsaw build "Anthropic"
-```
+`/scout push [company]` creates:
+1. **Recon file** at `/gigsaw/data/recon/[company].md`
+2. **Tracker entry** in `/gigsaw/data/applications.tsv`
+3. Hands off to `/gigsaw recon`, `/gigsaw build`, `/gigsaw propose`
 
 ## Performance
 
-- **Feed fetch:** 0.5s (TechCrunch + YC + Sequoia)
-- **Scoring:** 1-2s per company (Claude API)
-- **Inspection:** 2-3s per company (web request)
-- **Database queries:** sub-millisecond
-- **Full pipeline (12 companies):** ~30-40 seconds
+- Feed fetch: 0.5–2s (depending on sources)
+- Scoring: 1–2s per company (Claude API)
+- Draft: 1–3s (Claude API)
+- Wild play: 2–4s (Claude API)
+- Digest: 3–5s (Claude API)
+- Dashboard: <50ms (local SQLite)
+- Full pipeline (12 companies): ~30–40s
 
 ## Notes
 
-- Terminal-first, no UI
+- Terminal-first, monospace, no emoji
+- All output streams to stdout (pipeable)
 - Database auto-creates on first run
-- Sample data used when sources unavailable
-- All scoring/drafting via Claude API (production-quality)
+- Sample data for offline/blocked environments
+- Claude API used for: scoring, drafting, wild plays, digests
 - HITL (human-in-the-loop) for all critical decisions
 - The system itself is the portfolio piece

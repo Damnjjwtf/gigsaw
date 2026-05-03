@@ -16,6 +16,11 @@ from scout.score import ScoreEngine
 from scout.draft import DraftEngine
 from scout.careers import CareerPageInspector
 from scout.pipeline import GigsawPipeline
+from scout.wild import WildEngine
+from scout.dashboard import Dashboard
+from scout.digest import DigestGenerator
+from scout.sources.hackernews import HackerNewsSource
+from scout.sources.apify_source import ApifyScraper
 
 
 class TestStorage(unittest.TestCase):
@@ -382,6 +387,153 @@ class TestPipeline(unittest.TestCase):
             self.assertIn('85', content)
 
 
+class TestHackerNewsSource(unittest.TestCase):
+    """Test Hacker News Who's Hiring parser."""
+
+    def setUp(self):
+        self.source = HackerNewsSource()
+
+    def test_sample_companies_format(self):
+        """Test sample data structure."""
+        companies = self.source._sample_hiring_companies()
+        self.assertGreater(len(companies), 0)
+
+        for c in companies:
+            self.assertIn('name', c)
+            self.assertIn('source', c)
+            self.assertEqual(c['source'], 'hackernews')
+            self.assertIn('open_roles', c)
+            self.assertIsInstance(c['open_roles'], list)
+
+    def test_parse_hiring_post(self):
+        """Test parsing a single HN comment into a company."""
+        comment = {
+            'id': 12345,
+            'text': '<p>Replicate | SF | Senior Engineer | Onsite</p><p>We are hiring engineers and designers.</p><p>https://replicate.com</p>'
+        }
+        thread_data = {'time': 1700000000}
+
+        company = self.source._parse_hiring_post(comment, thread_data)
+
+        self.assertIsNotNone(company)
+        self.assertEqual(company['name'], 'Replicate')
+        self.assertIn('SF', company.get('location', '') or '')
+
+    def test_skip_short_posts(self):
+        """Posts that are too short should be skipped."""
+        comment = {'id': 1, 'text': 'too short'}
+        thread_data = {'time': 1700000000}
+
+        result = self.source._parse_hiring_post(comment, thread_data)
+        self.assertIsNone(result)
+
+
+class TestApifyScraper(unittest.TestCase):
+    """Test Apify scraper with sample data fallback."""
+
+    def setUp(self):
+        self.scraper = ApifyScraper()
+
+    def test_yc_sample_fallback(self):
+        """Test YC sample data when no token."""
+        # Force fallback by clearing token
+        original_token = self.scraper.token
+        self.scraper.token = None
+
+        try:
+            companies = self.scraper.fetch_yc_companies()
+            self.assertGreater(len(companies), 0)
+            for c in companies:
+                self.assertEqual(c['source'], 'yc')
+                self.assertIn('name', c)
+        finally:
+            self.scraper.token = original_token
+
+    def test_sequoia_sample_fallback(self):
+        """Test Sequoia sample data when no token."""
+        original_token = self.scraper.token
+        self.scraper.token = None
+
+        try:
+            companies = self.scraper.fetch_sequoia_companies()
+            self.assertGreater(len(companies), 0)
+            for c in companies:
+                self.assertEqual(c['source'], 'sequoia')
+        finally:
+            self.scraper.token = original_token
+
+
+class TestWildEngine(unittest.TestCase):
+    """Test wild plays generator."""
+
+    def setUp(self):
+        if not Config.ANTHROPIC_API_KEY:
+            self.skipTest('ANTHROPIC_API_KEY not set')
+        self.engine = WildEngine()
+
+    def test_generate_play_no_target(self):
+        """Test generating a play without specific target."""
+        play = self.engine.generate_play(target=None)
+        self.assertIsInstance(play, str)
+        self.assertGreater(len(play), 50)
+
+    def test_generate_play_with_unknown_target(self):
+        """Test generating a play for an unknown target."""
+        play = self.engine.generate_play(target='SomeUnknownStartup')
+        self.assertIsInstance(play, str)
+        self.assertGreater(len(play), 50)
+
+
+class TestDashboard(unittest.TestCase):
+    """Test pipeline dashboard."""
+
+    def setUp(self):
+        self.dashboard = Dashboard()
+
+    def test_render_returns_string(self):
+        """Test dashboard renders a string."""
+        output = self.dashboard.render()
+        self.assertIsInstance(output, str)
+        self.assertIn('SCOUT DASHBOARD', output)
+        self.assertIn('PIPELINE', output)
+
+    def test_gather_stats_structure(self):
+        """Test stats dictionary structure."""
+        stats = self.dashboard._gather_stats()
+
+        required_keys = ['total_companies', 'recent_companies', 'scored',
+                         'drafted', 'inspected', 'score_buckets',
+                         'top_targets', 'recent_runs']
+        for key in required_keys:
+            self.assertIn(key, stats)
+
+    def test_suggest_actions_empty_pipeline(self):
+        """Test suggestions when pipeline is empty."""
+        empty_stats = {
+            'total_companies': 0,
+            'recent_companies': 0,
+            'scored': 0,
+            'top_targets': []
+        }
+        actions = self.dashboard._suggest_actions(empty_stats)
+        self.assertGreater(len(actions), 0)
+        self.assertTrue(any('feed' in a.lower() for a in actions))
+
+
+class TestDigestGenerator(unittest.TestCase):
+    """Test daily digest generation."""
+
+    def setUp(self):
+        self.generator = DigestGenerator()
+
+    def test_empty_digest(self):
+        """Test digest output when no scores exist."""
+        result = self.generator._empty_digest()
+        self.assertIsInstance(result, str)
+        self.assertIn('SCOUT DIGEST', result)
+        self.assertIn('Action Queue', result)
+
+
 def run_tests():
     """Run all tests."""
     loader = unittest.TestLoader()
@@ -393,6 +545,11 @@ def run_tests():
     suite.addTests(loader.loadTestsFromTestCase(TestDraftEngine))
     suite.addTests(loader.loadTestsFromTestCase(TestCareerPageInspector))
     suite.addTests(loader.loadTestsFromTestCase(TestPipeline))
+    suite.addTests(loader.loadTestsFromTestCase(TestHackerNewsSource))
+    suite.addTests(loader.loadTestsFromTestCase(TestApifyScraper))
+    suite.addTests(loader.loadTestsFromTestCase(TestWildEngine))
+    suite.addTests(loader.loadTestsFromTestCase(TestDashboard))
+    suite.addTests(loader.loadTestsFromTestCase(TestDigestGenerator))
 
     runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(suite)

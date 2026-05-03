@@ -10,6 +10,9 @@ from scout.score import ScoreEngine
 from scout.draft import DraftEngine
 from scout.careers import CareerPageInspector
 from scout.pipeline import GigsawPipeline
+from scout.wild import WildEngine
+from scout.dashboard import Dashboard
+from scout.digest import DigestGenerator
 
 
 def format_amount(amount_usd):
@@ -247,6 +250,50 @@ def cmd_push(company_name=None):
     return 0
 
 
+def cmd_wild(target=None):
+    """Generate an unorthodox application play."""
+    print(f'\n--- SCOUT WILD ---')
+
+    if not Config.ANTHROPIC_API_KEY:
+        print('✗ ANTHROPIC_API_KEY not set')
+        return 1
+
+    engine = WildEngine()
+
+    if target:
+        print(f'Generating wild play for: {target}\n')
+    else:
+        print('Generating fresh wild play\n')
+
+    play = engine.generate_play(target=target)
+    print(play)
+    print('\n---\n')
+    return 0
+
+
+def cmd_dashboard():
+    """Render the pipeline dashboard."""
+    dashboard = Dashboard()
+    print(dashboard.render())
+    return 0
+
+
+def cmd_digest(days=1):
+    """Generate a daily digest of recent high-value targets."""
+    print(f'\n--- SCOUT DIGEST ---')
+
+    if not Config.ANTHROPIC_API_KEY:
+        print('✗ ANTHROPIC_API_KEY not set')
+        return 1
+
+    generator = DigestGenerator()
+    digest = generator.generate(days=days)
+    print()
+    print(digest)
+    print('\n---\n')
+    return 0
+
+
 def cmd_config_check():
     """Check and display configuration status."""
     Config.status()
@@ -300,21 +347,26 @@ def main():
     """Command router."""
     if len(sys.argv) < 2:
         print('Usage: /scout <command> [options]')
-        print('\nPhase 1 Commands:')
-        print('  feed           Fetch recent startups from all sources')
-        print('  list           List companies in database')
-        print('  config         Check configuration status')
-        print('  export         Export companies to JSON')
-        print('\nPhase 2 Commands:')
-        print('  score          Score companies against JJ\'s profile')
-        print('  draft [name]   Generate cold outreach draft')
-        print('  inspect [name] Check career page for open roles')
-        print('  push [name]    Push to GIGSAW pipeline')
+        print('\nDISCOVERY:')
+        print('  feed              Fetch recent startups from all sources')
+        print('  list              List companies in database')
+        print('  dashboard         At-a-glance pipeline status')
+        print('  export            Export companies to JSON')
+        print('\nEVALUATION:')
+        print('  score             Score companies against JJ\'s profile')
+        print('  inspect [name]    Check career page for open roles')
+        print('\nOUTREACH:')
+        print('  draft [name]      Generate cold outreach draft')
+        print('  wild [name]       Generate unorthodox application play')
+        print('  digest            Daily intelligence briefing')
+        print('  push [name]       Push to GIGSAW pipeline')
+        print('\nMETA:')
+        print('  config            Check configuration status')
         print('\nOptions:')
-        print('  --days N       Set recency window (default: 60)')
-        print('  --limit N      Limit results (default: 5)')
-        print('  --stage SEED   Filter by funding stage')
-        print('  --sources yc,sequoia  Comma-separated sources')
+        print('  --days N          Set recency window (default: 60)')
+        print('  --limit N         Limit results (default: 5)')
+        print('  --stage SEED      Filter by funding stage')
+        print('  --sources hn,yc   Comma-separated: techcrunch,yc,sequoia,hackernews')
         return 0
 
     command = sys.argv[1]
@@ -348,6 +400,13 @@ def main():
     elif command == 'push':
         company = sys.argv[2] if len(sys.argv) > 2 else None
         return cmd_push(company)
+    elif command == 'wild':
+        target = sys.argv[2] if len(sys.argv) > 2 and not sys.argv[2].startswith('--') else None
+        return cmd_wild(target)
+    elif command == 'dashboard':
+        return cmd_dashboard()
+    elif command == 'digest':
+        return cmd_digest(days=days)
     elif command == 'list':
         return cmd_list(limit=limit, days=days)
     elif command == 'config':
