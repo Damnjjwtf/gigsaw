@@ -29,7 +29,9 @@ class ScoutStorage:
                     headcount INTEGER,
                     source TEXT,
                     last_fetched TEXT,
-                    raw_data TEXT
+                    raw_data TEXT,
+                    career_page TEXT,
+                    location TEXT
                 )
             ''')
             conn.execute('''
@@ -47,7 +49,32 @@ class ScoutStorage:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     company_name TEXT NOT NULL,
                     score INTEGER,
+                    grade TEXT,
                     rationale TEXT,
+                    factors TEXT,
+                    timestamp TEXT,
+                    FOREIGN KEY(company_name) REFERENCES companies(name)
+                )
+            ''')
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS drafts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    company_name TEXT NOT NULL,
+                    subject TEXT,
+                    body TEXT,
+                    tone TEXT,
+                    timestamp TEXT,
+                    FOREIGN KEY(company_name) REFERENCES companies(name)
+                )
+            ''')
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS inspections (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    company_name TEXT NOT NULL,
+                    open_roles TEXT,
+                    team_size INTEGER,
+                    hiring_team TEXT,
+                    hiring_urgency TEXT,
                     timestamp TEXT,
                     FOREIGN KEY(company_name) REFERENCES companies(name)
                 )
@@ -131,4 +158,58 @@ class ScoutStorage:
                 WHERE datetime(announced_date) >= datetime('now', '-' || ? || ' days')
                 ORDER BY announced_date DESC
             ''', (days,)).fetchall()
+            return [dict(row) for row in rows]
+
+    def save_draft(self, company_name, subject, body, tone='warm'):
+        """Save a cold outreach draft."""
+        now = datetime.now().isoformat()
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute('''
+                INSERT INTO drafts (company_name, subject, body, tone, timestamp)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (company_name, subject, body, tone, now))
+            conn.commit()
+
+    def get_draft(self, company_name):
+        """Fetch the latest draft for a company."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            row = conn.execute('''
+                SELECT * FROM drafts WHERE company_name = ? ORDER BY timestamp DESC LIMIT 1
+            ''', (company_name,)).fetchone()
+            return dict(row) if row else None
+
+    def save_inspection(self, company_name, open_roles, team_size, hiring_team, hiring_urgency):
+        """Save career page inspection results."""
+        now = datetime.now().isoformat()
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute('''
+                INSERT INTO inspections (company_name, open_roles, team_size, hiring_team, hiring_urgency, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (company_name, json.dumps(open_roles), team_size, hiring_team, hiring_urgency, now))
+            conn.commit()
+
+    def get_inspection(self, company_name):
+        """Fetch the latest inspection for a company."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            row = conn.execute('''
+                SELECT * FROM inspections WHERE company_name = ? ORDER BY timestamp DESC LIMIT 1
+            ''', (company_name,)).fetchone()
+            if row:
+                result = dict(row)
+                result['open_roles'] = json.loads(result['open_roles']) if result['open_roles'] else []
+                return result
+            return None
+
+    def get_companies_by_score_range(self, min_score=80, max_score=100):
+        """Fetch companies scoring in a range."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute('''
+                SELECT DISTINCT c.* FROM companies c
+                JOIN scores s ON c.name = s.company_name
+                WHERE s.score >= ? AND s.score <= ?
+                ORDER BY s.score DESC
+            ''', (min_score, max_score)).fetchall()
             return [dict(row) for row in rows]
