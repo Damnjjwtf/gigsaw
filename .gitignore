@@ -16,6 +16,7 @@ builds/*/node_modules/
 node_modules/
 *.log
 
-# Sensitive recon data (optional — remove if you want to track)
-# data/recon/
-# data/evaluations/
+# Generated data (test output, recon files)
+data/recon/
+data/evaluations/
+scout/exports/
