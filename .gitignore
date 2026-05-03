@@ -15,6 +15,8 @@ builds/*/node_modules/
 .DS_Store
 node_modules/
 *.log
+__pycache__/
+*.pyc
 
 # Generated data (test output, recon files, etc.)
 data/recon/
