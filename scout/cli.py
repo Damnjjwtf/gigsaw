@@ -474,6 +474,13 @@ def cmd_remix(company_name=None, role=None):
     return 0
 
 
+def cmd_serve(host='127.0.0.1', port=8000):
+    """Start the SCOUT web dashboard."""
+    from scout.web import serve
+    serve(host=host, port=port)
+    return 0
+
+
 def cmd_config_check():
     """Check and display configuration status."""
     Config.status()
@@ -548,6 +555,7 @@ def main():
         print('\nAUTOMATION:')
         print('  watch [--once]    Run pipeline cycle (or --install-cron daily)')
         print('  alerts            Alert channel configuration status')
+        print('  serve             Start web dashboard at http://127.0.0.1:8000')
         print('\nMETA:')
         print('  config            Check API key configuration')
         print('\nOptions:')
@@ -557,6 +565,8 @@ def main():
         print('  --sources hn,yc   Comma-separated: techcrunch,yc,sequoia,hackernews')
         print('  --draft           Generate warm outreach draft (with /scout who)')
         print('  --interval N      Watch interval in minutes (default: 60)')
+        print('  --host HOST       Bind host for serve (default: 127.0.0.1)')
+        print('  --port PORT       Bind port for serve (default: 8000)')
         return 0
 
     command = sys.argv[1]
@@ -632,6 +642,18 @@ def main():
         return cmd_remix(target, role=role)
     elif command == 'list':
         return cmd_list(limit=limit, days=days)
+    elif command == 'serve':
+        host = '127.0.0.1'
+        port = 8000
+        if '--host' in sys.argv:
+            idx = sys.argv.index('--host')
+            if idx + 1 < len(sys.argv):
+                host = sys.argv[idx + 1]
+        if '--port' in sys.argv:
+            idx = sys.argv.index('--port')
+            if idx + 1 < len(sys.argv):
+                port = int(sys.argv[idx + 1])
+        return cmd_serve(host=host, port=port)
     elif command == 'config':
         return cmd_config_check()
     elif command == 'export':

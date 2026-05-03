@@ -28,6 +28,7 @@ from scout.recon import ReconEngine
 from scout.watch import Watcher
 from scout.alerts import AlertSystem
 from scout.remix import RemixEngine
+from scout.web import WebQueries, render_dashboard, render_companies, render_runs, render_company, page, score_class, fmt_amount
 
 
 class TestStorage(unittest.TestCase):
@@ -727,6 +728,61 @@ class TestRemixEngine(unittest.TestCase):
         self.assertIn('error', result)
 
 
+class TestWeb(unittest.TestCase):
+    """Test web dashboard rendering and queries."""
+
+    def setUp(self):
+        self.q = WebQueries()
+
+    def test_score_class_buckets(self):
+        self.assertEqual(score_class(95), 'high')
+        self.assertEqual(score_class(70), 'med')
+        self.assertEqual(score_class(20), 'low')
+        self.assertEqual(score_class(None), 'low')
+
+    def test_fmt_amount(self):
+        self.assertEqual(fmt_amount(None), '-')
+        self.assertEqual(fmt_amount(0), '-')
+        self.assertEqual(fmt_amount(2_500_000), '$2.5M')
+        self.assertEqual(fmt_amount(750_000), '$750K')
+
+    def test_stats_returns_dict(self):
+        s = self.q.stats()
+        for key in ('total', 'scored', 'high', 'drafted', 'inspected', 'last_run'):
+            self.assertIn(key, s)
+
+    def test_score_distribution_buckets(self):
+        d = self.q.score_distribution()
+        self.assertEqual(set(d.keys()), {'80-100', '60-79', '40-59', '0-39'})
+        for v in d.values():
+            self.assertGreaterEqual(v, 0)
+
+    def test_dashboard_renders_html(self):
+        html_str = render_dashboard(self.q)
+        self.assertIn('<!DOCTYPE html>', html_str)
+        self.assertIn('SCOUT', html_str)
+        self.assertIn('Pipeline Status', html_str)
+
+    def test_companies_renders_html(self):
+        html_str = render_companies(self.q)
+        self.assertIn('All Companies', html_str)
+        self.assertIn('<table>', html_str)
+
+    def test_runs_renders_html(self):
+        html_str = render_runs(self.q)
+        self.assertIn('Pipeline Runs', html_str)
+
+    def test_company_unknown_returns_404(self):
+        content, status = render_company(self.q, 'NonexistentCompanyXYZ987')
+        self.assertEqual(status, 404)
+        self.assertIn('not in database', content)
+
+    def test_page_escapes_title(self):
+        html_str = page('<script>alert(1)</script>', '<p>body</p>')
+        self.assertNotIn('<script>alert(1)</script>', html_str)
+        self.assertIn('&lt;script&gt;', html_str)
+
+
 def run_tests():
     """Run all tests."""
     loader = unittest.TestLoader()
@@ -750,6 +806,7 @@ def run_tests():
     suite.addTests(loader.loadTestsFromTestCase(TestWatcher))
     suite.addTests(loader.loadTestsFromTestCase(TestAlertSystem))
     suite.addTests(loader.loadTestsFromTestCase(TestRemixEngine))
+    suite.addTests(loader.loadTestsFromTestCase(TestWeb))
 
     runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(suite)

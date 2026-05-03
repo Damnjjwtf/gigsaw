@@ -42,7 +42,20 @@ The complete intelligence-arbitrage system. Every command from CLAUDE.md, fully 
 /scout watch --install-cron daily     # Generate cron line
 /scout watch --install-launchd        # Generate macOS launchd plist
 /scout alerts                         # Show alert configuration status
+/scout serve                          # Web dashboard at http://127.0.0.1:8000
+/scout serve --port 9000 --host 0.0.0.0
 ```
+
+### Web Dashboard
+
+Read-only browser view over `scout.db`. Stdlib only — no Flask, no JS framework, no build step.
+
+- `/`            Dashboard: stats, score histogram, top targets, recent runs
+- `/companies`   Full company list with score + stage + amount + source
+- `/runs`        Pipeline run history
+- `/company?name=X`  Per-company detail: score rationale, draft, inspection
+- `/api/companies`, `/api/runs`, `/api/stats`  JSON endpoints
+- `/healthz`     Liveness check
 
 ### Meta
 ```bash
@@ -97,8 +110,9 @@ scout/
 ├── watch.py                  ★ Background scheduler (Phase 4)
 ├── alerts.py                 ★ Multi-channel alerts (Phase 4)
 ├── remix.py                  ★ Application package generator (Phase 4)
+├── web.py                    Web dashboard (stdlib HTTP, no deps)
 ├── cli.py                    Command routing
-├── test_scout.py             40 tests, all passing
+├── test_scout.py             49 tests, all passing
 ├── README.md                 This file
 └── sources/
     ├── hackernews.py         HN Who's Hiring parser
@@ -245,7 +259,7 @@ Pipeline runs automatically score companies. Any company scoring 80+ triggers:
 python3 -m scout.test_scout
 ```
 
-**40 tests, all passing:**
+**49 tests, all passing:**
 
 | Module | Tests |
 |--------|-------|
@@ -267,7 +281,8 @@ python3 -m scout.test_scout
 | **Watcher** | **2** ★ |
 | **AlertSystem** | **3** ★ |
 | **Remix** | **2** ★ |
-| **TOTAL** | **40** |
+| **Web** | **9** |
+| **TOTAL** | **49** |
 
 ## Workflow
 
