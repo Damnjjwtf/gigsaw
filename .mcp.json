@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "caveman-shrink": {
+      "command": "npx",
+      "args": ["-y", "caveman-shrink"]
+    }
+  }
+}
