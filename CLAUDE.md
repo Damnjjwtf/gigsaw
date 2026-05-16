@@ -490,6 +490,8 @@ gigsaw/
 | Component | Tool |
 |-----------|------|
 | Agent orchestration | Claude Code + this CLAUDE.md + skill modes |
+| Build workflow | GStack (garrytan/gstack) — sprint cycle + 23 specialist skills |
+| Build comms | Caveman — compressed communication, ~75% token reduction |
 | Job scraping | Apify actors (LinkedIn, Indeed) |
 | Career page crawling | Firecrawl |
 | Company recon | Claude Code web search + Firecrawl |
@@ -538,3 +540,69 @@ Combined with the CIE positioning he's already built — a category he coined, a
 4. Start with `/gigsaw search` OR pick a dream company and run `/gigsaw recon` + `/gigsaw propose`
 
 The second path is recommended. Don't spray. Target.
+
+---
+
+## BUILD WORKFLOW — GStack + Caveman
+
+This system runs on two meta-tools that govern HOW we build:
+
+### GStack (garrytan/gstack)
+Virtual engineering team for Claude Code. Sprint cycle: **Think → Plan → Build → Review → Test → Ship → Reflect**
+
+Installed at `~/.claude/skills/gstack`. Skills active in every session.
+
+**When to invoke each role:**
+
+| Stage | Skill | When |
+|-------|-------|------|
+| Think | `/office-hours` | Before any new feature — interrogate the request, reframe if needed |
+| Plan | `/plan-eng-review` | Architecture decisions, edge cases, test coverage |
+| Plan | `/plan-ceo-review` | Scope questions: should we build this at all? |
+| Build | *(code)* | After plan is locked |
+| Review | `/review` | After building — find production bugs, auto-fix obvious issues |
+| Test | `/qa` | Run tests, verify CLI commands work end-to-end |
+| Ship | `/ship` | Sync main, run tests, open PR |
+| Reflect | `/retro` | Weekly — what shipped, what stalled, what to drop |
+
+**Key rules:**
+- Run `/office-hours` before building anything new. Don't skip.
+- Run `/review` before every commit to production code.
+- `/ship` handles PR creation — don't do it manually.
+- `/cso` for any feature that touches credentials, webhooks, or external APIs.
+
+### Caveman
+Communication compression layer. Active by default in all build sessions.
+
+**What it does:** Strips filler, drops articles, uses fragments. Keeps full technical substance. ~75% token reduction.
+
+**Levels:**
+- `/caveman lite` — drop filler only
+- `/caveman full` — classic caveman (default)
+- `/caveman ultra` — maximum compression, fragments, symbols
+
+**When to use normal mode:**
+- Writing user-facing docs (README, CLAUDE.md)
+- Security warnings or irreversible operations
+- When compression creates technical ambiguity
+
+**Key sub-skills:**
+- `/caveman-commit` — compressed commit messages (auto-triggers on commits)
+- `/caveman-review` — one-line PR review comments
+- `cavecrew-investigator` — spawn compressed subagent to locate code
+- `cavecrew-builder` — spawn compressed subagent for 1-2 file edits
+
+### Sprint Protocol for GIGSAW
+
+For any new SCOUT/GIGSAW feature:
+
+```
+1. /office-hours    → interrogate the request
+2. /plan-eng-review → architecture + edge cases
+3. BUILD            → write code
+4. /review          → audit before commit
+5. Tests            → python3 -m scout.test_scout
+6. /ship            → PR
+```
+
+For scout commands specifically: always test the CLI end-to-end (`python3 -m scout.cli [cmd]`) before shipping. Sample data fallback must work offline.
