@@ -25,6 +25,7 @@ data/alerts/
 data/watch_summaries/
 scout/exports/
 scout/arbitrage/
+scout/*.db
 proposals/
 output/
 watch.log
