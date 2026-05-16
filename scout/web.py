@@ -198,6 +198,8 @@ class WebQueries:
         return [dict(r) for r in rows]
 
     def all_companies(self, sort='date'):
+        if sort not in ('date', 'score'):
+            sort = 'date'
         order = 'c.announced_date DESC' if sort == 'date' else 'score DESC NULLS LAST'
         with self._conn() as conn:
             rows = conn.execute(f'''

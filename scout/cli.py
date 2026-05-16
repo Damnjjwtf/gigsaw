@@ -2,6 +2,7 @@
 
 import sys
 import json
+import sqlite3
 from datetime import datetime
 from scout.config import Config
 from scout.feed import Feed
@@ -45,7 +46,7 @@ def format_date(iso_date):
             return 'yesterday'
         else:
             return f'{days_ago}d ago'
-    except:
+    except Exception:
         return iso_date
 
 
@@ -151,8 +152,8 @@ def cmd_draft(company_name=None):
     # Get score if available
     score_result = None
     try:
-        conn = __import__('sqlite3').connect(Config.DB_PATH)
-        conn.row_factory = __import__('sqlite3').Row
+        conn = sqlite3.connect(Config.DB_PATH)
+        conn.row_factory = sqlite3.Row
         row = conn.execute(
             'SELECT * FROM scores WHERE company_name = ? ORDER BY timestamp DESC LIMIT 1',
             (company_name,)
@@ -160,7 +161,7 @@ def cmd_draft(company_name=None):
         if row:
             score_result = dict(row)
         conn.close()
-    except:
+    except Exception:
         pass
 
     # Generate draft
@@ -220,8 +221,8 @@ def cmd_push(company_name=None):
     # Get score if available
     score_result = None
     try:
-        conn = __import__('sqlite3').connect(Config.DB_PATH)
-        conn.row_factory = __import__('sqlite3').Row
+        conn = sqlite3.connect(Config.DB_PATH)
+        conn.row_factory = sqlite3.Row
         row = conn.execute(
             'SELECT * FROM scores WHERE company_name = ? ORDER BY timestamp DESC LIMIT 1',
             (company_name,)
@@ -229,7 +230,7 @@ def cmd_push(company_name=None):
         if row:
             score_result = dict(row)
         conn.close()
-    except:
+    except Exception:
         pass
 
     if not score_result or score_result.get('score', 0) < 75:

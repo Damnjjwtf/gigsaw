@@ -12,7 +12,7 @@ from scout.config import Config
 from scout.storage import ScoutStorage
 
 
-CONNECTIONS_PATH = Path('/home/user/gigsaw/data/connections.csv')
+CONNECTIONS_PATH = Path(__file__).parent.parent / 'data' / 'connections.csv'
 
 
 WARM_OUTREACH_SYSTEM_PROMPT = """You are writing a warm-intro outreach for JJ — a copywriter and Creative Intelligence Engineer (CIE).

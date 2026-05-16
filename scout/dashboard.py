@@ -161,7 +161,7 @@ class Dashboard:
             with open(tracker) as f:
                 # Subtract 1 for header
                 return max(0, sum(1 for _ in f) - 1)
-        except:
+        except Exception:
             return 0
 
     def _suggest_actions(self, stats):

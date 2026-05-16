@@ -102,10 +102,13 @@ class JobsStorage:
         """Fetch all jobs."""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
-            query = 'SELECT * FROM jobs ORDER BY posted_date DESC'
             if limit:
-                query += f' LIMIT {limit}'
-            rows = conn.execute(query).fetchall()
+                rows = conn.execute(
+                    'SELECT * FROM jobs ORDER BY posted_date DESC LIMIT ?',
+                    (limit,)
+                ).fetchall()
+            else:
+                rows = conn.execute('SELECT * FROM jobs ORDER BY posted_date DESC').fetchall()
         return [dict(r) for r in rows]
 
     def count(self):

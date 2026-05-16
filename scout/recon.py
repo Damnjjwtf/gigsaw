@@ -65,7 +65,7 @@ class ReconEngine:
     def __init__(self):
         self.client = Anthropic()
         self.storage = ScoutStorage()
-        self.output_dir = Path('/home/user/gigsaw/data/recon')
+        self.output_dir = Path(__file__).parent.parent / 'data' / 'recon'
 
     def deep_dive(self, company_name):
         """
@@ -157,7 +157,7 @@ PRIOR OUTREACH DRAFT:
                     ORDER BY timestamp DESC LIMIT 1
                 ''', (company_name,)).fetchone()
                 return dict(row) if row else None
-        except:
+        except Exception:
             return None
 
     def _save_report(self, report, company_name):

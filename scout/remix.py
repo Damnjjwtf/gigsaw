@@ -13,7 +13,7 @@ from scout.config import Config
 from scout.storage import ScoutStorage
 
 
-PROFILE_PATH = Path('/home/user/gigsaw/profile.json')
+PROFILE_PATH = Path(__file__).parent.parent / 'profile.json'
 
 
 RESUME_SYSTEM_PROMPT = """You are generating a tailored resume for JJ targeting a specific company.
@@ -71,7 +71,7 @@ class RemixEngine:
     def __init__(self):
         self.client = Anthropic()
         self.storage = ScoutStorage()
-        self.output_root = Path('/home/user/gigsaw/output')
+        self.output_root = Path(__file__).parent.parent / 'output'
 
     def remix(self, company_name, role=None, proof_build=None, arbitrage_notes=None):
         """
@@ -137,7 +137,7 @@ class RemixEngine:
         if PROFILE_PATH.exists():
             try:
                 return json.loads(PROFILE_PATH.read_text())
-            except:
+            except Exception:
                 pass
 
         # Default profile from CLAUDE.md if profile.json missing

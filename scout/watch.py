@@ -124,7 +124,7 @@ class Watcher:
         Returns the line to add to crontab.
         """
         python_path = sys.executable
-        scout_path = Path('/home/user/gigsaw').resolve()
+        scout_path = Path(__file__).parent.parent.resolve()
 
         schedules = {
             'hourly': '0 * * * *',
@@ -134,18 +134,9 @@ class Watcher:
         }
 
         schedule = schedules.get(frequency, schedules['daily'])
-        env_exports = []
-
-        if Config.ANTHROPIC_API_KEY:
-            env_exports.append(f'ANTHROPIC_API_KEY="{Config.ANTHROPIC_API_KEY[:8]}..."')
-        if Config.APIFY_API_TOKEN:
-            env_exports.append(f'APIFY_API_TOKEN="{Config.APIFY_API_TOKEN[:8]}..."')
-
-        env_string = ' && '.join(f'export {e}' for e in env_exports)
 
         cron_line = (
             f'{schedule} cd {scout_path} && '
-            f'{env_string} && '
             f'{python_path} -m scout.cli watch --once >> ~/.scout/watch.log 2>&1'
         )
 
@@ -157,7 +148,7 @@ class Watcher:
         Returns the plist XML string.
         """
         python_path = sys.executable
-        scout_path = Path('/home/user/gigsaw').resolve()
+        scout_path = Path(__file__).parent.parent.resolve()
 
         plist = f'''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -198,7 +189,7 @@ class Watcher:
                     (company_name,)
                 ).fetchone()
                 return row is not None
-        except:
+        except Exception:
             return False
 
     def _log(self, message):

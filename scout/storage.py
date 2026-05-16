@@ -136,10 +136,13 @@ class ScoutStorage:
         """Fetch all companies. Returns list of dicts."""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
-            query = 'SELECT * FROM companies ORDER BY announced_date DESC'
             if limit:
-                query += f' LIMIT {limit}'
-            rows = conn.execute(query).fetchall()
+                rows = conn.execute(
+                    'SELECT * FROM companies ORDER BY announced_date DESC LIMIT ?',
+                    (limit,)
+                ).fetchall()
+            else:
+                rows = conn.execute('SELECT * FROM companies ORDER BY announced_date DESC').fetchall()
             return [dict(row) for row in rows]
 
     def get_company(self, name):

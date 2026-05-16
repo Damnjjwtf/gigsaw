@@ -81,7 +81,7 @@ class ProposeEngine:
     def __init__(self):
         self.client = Anthropic()
         self.storage = ScoutStorage()
-        self.output_dir = Path('/home/user/gigsaw/proposals')
+        self.output_dir = Path(__file__).parent.parent / 'proposals'
 
     def generate_proposal(self, company_name, recon_notes=None, current_postings=None):
         """

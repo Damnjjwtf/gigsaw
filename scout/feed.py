@@ -64,7 +64,7 @@ class Feed:
                             pub_date = parsedate_to_datetime(pubdate_elem.text)
                             if pub_date.replace(tzinfo=None) < cutoff:
                                 continue
-                        except:
+                        except Exception:
                             pub_date = datetime.now()
                     else:
                         pub_date = datetime.now()
@@ -93,7 +93,7 @@ class Feed:
                             amount *= 1_000_000
                         elif multiplier == 'B':
                             amount *= 1_000_000_000
-                    except:
+                    except Exception:
                         continue
 
                     description = ''
