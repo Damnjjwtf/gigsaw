@@ -481,6 +481,58 @@ def cmd_serve(host='127.0.0.1', port=8000):
     return 0
 
 
+def cmd_jobs(action='list', query=None):
+    """Job board aggregation (RemoteOK, We Work Remotely, etc.)."""
+    from scout.jobs import JobFeed, JobsStorage
+
+    storage = JobsStorage()
+
+    if action == 'feed':
+        print('\nFetching jobs from all sources...')
+        feed = JobFeed()
+        feed.fetch_all()
+        return 0
+
+    elif action == 'list':
+        jobs = storage.get_recent(days=7, limit=20)
+        if not jobs:
+            print('✗ No recent jobs')
+            return 1
+        print(f'\n--- JOBS (last 7 days, {len(jobs)} results) ---\n')
+        for job in jobs:
+            print(f'{job["job_title"]:40} @ {job["company"]:20} ({job["source"]})')
+            print(f'  {job["location"]:40} {job["posted_date"][:10] if job["posted_date"] else ""}')
+            print(f'  {job["url"]}\n')
+        return 0
+
+    elif action == 'search':
+        if not query:
+            print('✗ Specify search: /scout jobs search "keyword"')
+            return 1
+        jobs = storage.search(query, limit=30)
+        if not jobs:
+            print(f'✗ No jobs matching "{query}"')
+            return 1
+        print(f'\n--- JOBS SEARCH: "{query}" ({len(jobs)} results) ---\n')
+        for job in jobs:
+            print(f'{job["job_title"]:40} @ {job["company"]:20}')
+            print(f'  {job["url"]}\n')
+        return 0
+
+    elif action == 'status':
+        total = storage.count()
+        by_source = storage.count_by_source()
+        print(f'\nJob DB: {total} total')
+        for source, count in sorted(by_source.items(), key=lambda x: -x[1]):
+            print(f'  {source:25} {count}')
+        print()
+        return 0
+
+    else:
+        print(f'✗ Unknown action: {action}')
+        return 1
+
+
 def cmd_config_check():
     """Check and display configuration status."""
     Config.status()
@@ -556,6 +608,11 @@ def main():
         print('  watch [--once]    Run pipeline cycle (or --install-cron daily)')
         print('  alerts            Alert channel configuration status')
         print('  serve             Start web dashboard at http://127.0.0.1:8000')
+        print('\nJOBS:')
+        print('  jobs feed         Fetch from RemoteOK + We Work Remotely')
+        print('  jobs list         List recent jobs (7 days)')
+        print('  jobs search TEXT  Search jobs by title/company/description')
+        print('  jobs status       Job DB stats by source')
         print('\nMETA:')
         print('  config            Check API key configuration')
         print('\nOptions:')
@@ -654,6 +711,10 @@ def main():
             if idx + 1 < len(sys.argv):
                 port = int(sys.argv[idx + 1])
         return cmd_serve(host=host, port=port)
+    elif command == 'jobs':
+        action = sys.argv[2] if len(sys.argv) > 2 and not sys.argv[2].startswith('--') else 'list'
+        query = sys.argv[3] if len(sys.argv) > 3 and not sys.argv[3].startswith('--') else None
+        return cmd_jobs(action=action, query=query)
     elif command == 'config':
         return cmd_config_check()
     elif command == 'export':

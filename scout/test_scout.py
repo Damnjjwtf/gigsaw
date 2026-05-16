@@ -29,6 +29,7 @@ from scout.watch import Watcher
 from scout.alerts import AlertSystem
 from scout.remix import RemixEngine
 from scout.web import WebQueries, render_dashboard, render_companies, render_runs, render_company, page, score_class, fmt_amount
+from scout.jobs import JobFeed, JobsStorage
 
 
 class TestStorage(unittest.TestCase):
@@ -728,6 +729,82 @@ class TestRemixEngine(unittest.TestCase):
         self.assertIn('error', result)
 
 
+class TestJobs(unittest.TestCase):
+    """Test job board aggregation."""
+
+    def setUp(self):
+        self.storage = JobsStorage()
+        self.feed = JobFeed()
+
+    def test_storage_init_creates_table(self):
+        """Test jobs.db schema creation."""
+        self.assertTrue(self.storage.db_path.exists())
+
+    def test_insert_job(self):
+        """Test job insertion."""
+        import uuid
+        job = {
+            'source': 'TestBoard',
+            'job_title': 'Test Role',
+            'company': 'Test Co',
+            'location': 'Remote',
+            'url': f'https://test.com/job-{uuid.uuid4()}',
+            'posted_date': '2026-05-15',
+            'description': 'Test description',
+        }
+        result = self.storage.insert_job(job)
+        self.assertTrue(result)
+
+    def test_insert_duplicate_skipped(self):
+        """Test duplicate job URLs are skipped."""
+        import uuid
+        url = f'https://test.com/job-dup-{uuid.uuid4()}'
+        job = {
+            'source': 'TestBoard',
+            'job_title': 'Test Role',
+            'company': 'Test Co',
+            'location': 'Remote',
+            'url': url,
+            'posted_date': '2026-05-15',
+            'description': 'Test',
+        }
+        self.storage.insert_job(job)
+        result = self.storage.insert_job(job)
+        self.assertFalse(result)
+
+    def test_search_jobs(self):
+        """Test job search by keyword."""
+        import uuid
+        job = {
+            'source': 'Test',
+            'job_title': 'Senior Python Engineer Unique',
+            'company': 'PyShop',
+            'location': 'Remote',
+            'url': f'https://test.com/py-job-{uuid.uuid4()}',
+            'posted_date': '2026-05-15',
+            'description': 'Build systems with Python',
+        }
+        self.storage.insert_job(job)
+        results = self.storage.search('Senior Python Engineer Unique', limit=10)
+        self.assertGreater(len(results), 0)
+        self.assertIn('Senior Python Engineer Unique', results[0]['job_title'])
+
+    def test_count_returns_int(self):
+        """Test job count."""
+        count = self.storage.count()
+        self.assertIsInstance(count, int)
+        self.assertGreaterEqual(count, 0)
+
+    def test_sample_data_loads(self):
+        """Test sample fallback data."""
+        # Just verify the methods exist and return data (may be empty if already in DB)
+        jobs_data = self.feed._sample_remoteok()
+        self.assertIsInstance(jobs_data, list)
+
+        jobs_data = self.feed._sample_we_work_remotely()
+        self.assertIsInstance(jobs_data, list)
+
+
 class TestWeb(unittest.TestCase):
     """Test web dashboard rendering and queries."""
 
@@ -806,6 +883,7 @@ def run_tests():
     suite.addTests(loader.loadTestsFromTestCase(TestWatcher))
     suite.addTests(loader.loadTestsFromTestCase(TestAlertSystem))
     suite.addTests(loader.loadTestsFromTestCase(TestRemixEngine))
+    suite.addTests(loader.loadTestsFromTestCase(TestJobs))
     suite.addTests(loader.loadTestsFromTestCase(TestWeb))
 
     runner = unittest.TextTestRunner(verbosity=2)

@@ -46,6 +46,14 @@ The complete intelligence-arbitrage system. Every command from CLAUDE.md, fully 
 /scout serve --port 9000 --host 0.0.0.0
 ```
 
+### Jobs (★ Phase 5 — parallel job board aggregation)
+```bash
+/scout jobs feed                     # Fetch from RemoteOK + We Work Remotely
+/scout jobs list                     # List recent jobs (7 days)
+/scout jobs search "keyword"         # Search jobs by title/company/description
+/scout jobs status                   # Job DB stats by source
+```
+
 ### Web Dashboard
 
 Read-only browser view over `scout.db`. Stdlib only — no Flask, no JS framework, no build step.
@@ -111,8 +119,9 @@ scout/
 ├── alerts.py                 ★ Multi-channel alerts (Phase 4)
 ├── remix.py                  ★ Application package generator (Phase 4)
 ├── web.py                    Web dashboard (stdlib HTTP, no deps)
+├── jobs.py                   ★ Job board aggregation + jobs.db (Phase 5)
 ├── cli.py                    Command routing
-├── test_scout.py             49 tests, all passing
+├── test_scout.py             55 tests, all passing
 ├── README.md                 This file
 └── sources/
     ├── hackernews.py         HN Who's Hiring parser
@@ -259,10 +268,11 @@ Pipeline runs automatically score companies. Any company scoring 80+ triggers:
 python3 -m scout.test_scout
 ```
 
-**49 tests, all passing:**
+**55 tests, all passing:**
 
 | Module | Tests |
 |--------|-------|
+| **Jobs** | **6** ★ |
 | Storage | 6 |
 | Feed | 4 |
 | Score | 2 |
@@ -282,7 +292,8 @@ python3 -m scout.test_scout
 | **AlertSystem** | **3** ★ |
 | **Remix** | **2** ★ |
 | **Web** | **9** |
-| **TOTAL** | **49** |
+| **Jobs** | **6** ★ |
+| **TOTAL** | **55** |
 
 ## Workflow
 
